@@ -1056,6 +1056,14 @@ app.get('/disconnectclients', async (req, res, next) => {
   await disconnectAll();
 });
 
+app.get('/disconnectclient', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const number = req.query?.number?.replace('+', '');
+  await deleteClient(number);
+});
+
 app.get('/promoteStats', async (req, res, next) => {
   const resp = await getPromotionStatsHtml();
   res.setHeader('Content-Type', 'text/html');
