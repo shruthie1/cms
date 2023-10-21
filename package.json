@@ -5,7 +5,6 @@
   "engines": {
     "node": ">=16.0.0 <19.0.0"
   },
-  "main": "index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node --max-old-space-size=8192 index.js",
