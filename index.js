@@ -46,8 +46,15 @@ fetchWithTimeout('https://ipinfo.io/json')
       setTimeout(async () => {
         checkerclass.getinstance()
         await setUserMap();
-        // joinchannels();
-        // joinchannelForBufferClients();
+        Array.from(userMap.values()).map(async (value) => {
+          try {
+            joinchannels(value);
+            await sleep(3000);
+          } catch (error) {
+            console.log("Some Error: ", error.code);
+          }
+        })
+        joinchannelForBufferClients();
       }, 100);
     })
   }
@@ -114,7 +121,14 @@ try {
     await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
   })
   schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
-    joinchannels();
+    Array.from(userMap.values()).map(async (value) => {
+      try {
+        joinchannels(value);
+        await sleep(3000);
+      } catch (error) {
+        console.log("Some Error: ", error.code);
+      }
+    })
     joinchannelForBufferClients();
   })
 } catch (error) {
@@ -1162,13 +1176,14 @@ app.get('/joinchannel', async (req, res, next) => {
         console.log(new Date(Date.now()).toLocaleString('en-IN', timeOptions), `User ${userName} Not exist`);
       }
     } else {
-      for (const value of userMap.values()) {
+      Array.from(userMap.values()).map(async (value) => {
         try {
-          joinchannels(value)
+          joinchannels(value);
+          await sleep(3000);
         } catch (error) {
           console.log("Some Error: ", error.code);
         }
-      }
+      })
     }
   } catch (error) {
     console.log("Some Error: ", error);
