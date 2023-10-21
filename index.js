@@ -47,14 +47,14 @@ fetchWithTimeout('https://ipinfo.io/json')
         checkerclass.getinstance()
         await setUserMap();
         setTimeout(() => {
-          Array.from(userMap.values()).map(async (value) => {
-            try {
-              joinchannels(value);
-              await sleep(3000);
-            } catch (error) {
-              console.log("Some Error: ", error.code);
-            }
-          })
+          // Array.from(userMap.values()).map(async (value) => {
+          //   try {
+          //     joinchannels(value);
+          //     await sleep(3000);
+          //   } catch (error) {
+          //     console.log("Some Error: ", error.code);
+          //   }
+          // })
           joinchannelForBufferClients();
         }, 120000);
       }, 100);
@@ -115,7 +115,7 @@ try {
         if (now.getUTCDate() % 3 === 1) {
           await fetchWithTimeout(`${value.url}leavechannels`);
         }
-        joinchannels(value);
+        fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
       } catch (error) {
         console.log("Some Error: ", error.code);
       }
@@ -123,14 +123,7 @@ try {
     await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
   })
   schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
-    Array.from(userMap.values()).map(async (value) => {
-      try {
-        joinchannels(value);
-        await sleep(3000);
-      } catch (error) {
-        console.log("Some Error: ", error.code);
-      }
-    })
+    fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
     joinchannelForBufferClients();
   })
 } catch (error) {
@@ -1698,7 +1691,7 @@ async function joinchannelForBufferClients() {
   const db = ChannelService.getInstance();
   await disconnectAll();
   await sleep(2000);
-  const clients = await db.readBufferClients({ channels: { "$lt": 150 } }, 5)
+  const clients = await db.readBufferClients({ channels: { "$lt": 150 } }, 4)
   for (const document of clients) {
     const cli = await createClient(document.mobile, document.session, false);
     if (cli) {
