@@ -46,15 +46,17 @@ fetchWithTimeout('https://ipinfo.io/json')
       setTimeout(async () => {
         checkerclass.getinstance()
         await setUserMap();
-        Array.from(userMap.values()).map(async (value) => {
-          try {
-            joinchannels(value);
-            await sleep(3000);
-          } catch (error) {
-            console.log("Some Error: ", error.code);
-          }
-        })
-        joinchannelForBufferClients();
+        setTimeout(() => {
+          Array.from(userMap.values()).map(async (value) => {
+            try {
+              joinchannels(value);
+              await sleep(3000);
+            } catch (error) {
+              console.log("Some Error: ", error.code);
+            }
+          })
+          joinchannelForBufferClients();
+        }, 120000);
       }, 100);
     })
   }
