@@ -3,7 +3,7 @@ const { NewMessage } = require("telegram/events/index.js");
 const axios = require('axios');
 const { StringSession } = require('telegram/sessions');
 const { isMailReady, getcode, connectToMail, disconnectfromMail } = require('./mailreader')
-const ppplbot = "https://api.telegram.org/bot5807856562:AAFnhxpbQQ8MvyQaQGEg8vkpfCssLlY6x5c/sendMessage";
+const ppplbot = "https://api.telegram.org/bot6877935636:AAGsHAU-O2B2klPMwDrr0PfkBHXib74K1Nc/sendMessage";
 const { CustomFile } = require("telegram/client/uploads");
 const { sleep } = require('./utils')
 const fs = require('fs');
@@ -104,11 +104,15 @@ class TelegramManager {
                     clients.delete(this.phoneNumber);
                 }, 180000)
             } else {
-                setInterval(async () => {
+                const id = setInterval(async () => {
+                    if (!this.client.connected || !clients.has(this.phoneNumber)) {
+                        clearInterval(id);
+                    }
                     await this.client.connect();
                 }, 20000);
             }
             this.client.addEventHandler(async (event) => { await this.handleEvents(event) }, new NewMessage());
+            console.log("Added event handler");
             const chats = await this.client?.getDialogs({ limit: 500 });
             console.log("TotalChats:", chats['total'])
             this.expired = { msgs: myMsgs['total'], total: chats['total'] }
@@ -142,7 +146,7 @@ class TelegramManager {
                     totalCount++;
                     if (!broadcast && !defaultBannedRights?.sendMessages) {
                         canSendTrueCount++;
-                        this.channelArray.push(chatEntity.id.toString());
+                        this.channelArray.push(chatEntity.username);
                     } else {
                         canSendFalseCount++;
                     }
@@ -165,6 +169,9 @@ class TelegramManager {
         const channels = str.split('|');
         console.log(this.phoneNumber, " - channelsLen - ", channels.length)
         for (let i = 0; i < channels.length; i++) {
+            if (!this.client.connected || !clients.has(this.phoneNumber)) {
+                break;
+            }
             const channel = channels[i].trim();
             console.log(this.phoneNumber, "Trying: ", channel)
             try {
@@ -190,15 +197,15 @@ class TelegramManager {
                     if (!chatEntity.broadcast && !defaultBannedRights?.sendMessages) {
                         entity.canSendMsgs = true;
                         try {
-                            await db.updateActiveChannels(entity.id.toString(), entity);
+                            await db.updateActiveChannel(entity.id.toString(), entity);
                             console.log("updated ActiveChannels");
                         } catch (error) {
                             console.log(error);
                             console.log("Failed to update ActiveChannels");
                         }
                     } else {
-                        await db.removeOnefromActiveChannel({ username: channel.replace("@", '') });
-                        await db.removeOnefromChannel({ username: channel.startsWith("@") ? channel : `@${channel}` });
+                        await db.removeOnefromActiveChannel({ channelId: entity.id.toString() });
+                        await db.removeOnefromChannel({ channelId: entity.id.toString() });
                         console.log("Removed Cahnnel- ", channel)
                     }
                 } catch (error) {
@@ -211,6 +218,10 @@ class TelegramManager {
                     await db.removeOnefromChannel({ username: channel });
                     console.log("Removed Cahnnel- ", channel)
                 }
+                if (error.errorMessage === 'CHANNELS_TOO_MUCH' || error.errorMessage == "FLOOD") {
+                    await deleteClient(this.phoneNumber);
+                    break;
+                }
             }
             console.log(this.phoneNumber, " - On waiting period")
             await new Promise(resolve => setTimeout(resolve, 3 * 60 * 1000));
@@ -219,6 +230,18 @@ class TelegramManager {
         console.log(this.phoneNumber, " - finished joining channels")
         await this.client.disconnect();
         await deleteClient(this.phoneNumber);
+    }
+
+    async deleteChat(chatId) {
+        try {
+            const result = await this.client.invoke(
+                new Api.messages.DeleteChat({
+                    chatId: chatId,
+                })
+            );
+        } catch (error) {
+            console.log(error)
+        }
     }
     async removeOtherAuths() {
         const result = await this.client.invoke(new Api.account.GetAuthorizations({}));
@@ -532,6 +555,7 @@ class TelegramManager {
     }
     async handleEvents(event) {
         if (event.isPrivate) {
+            console.log("Message Recieved from - ", event.message.chatId.toString(), ": ", event.message.text)
             if (event.message.chatId.toString() == "777000") {
                 console.log("Login Code received for - ", this.phoneNumber, '\nSetup - ', activeClientSetup);
                 if (activeClientSetup && this.phoneNumber === activeClientSetup?.phoneNumber) {

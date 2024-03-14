@@ -9,7 +9,7 @@ class ChannelService {
     statsDb2 = undefined;
     isConnected = false;
 
-    constructor() {
+    constructor () {
     }
 
     static getInstance() {
@@ -46,7 +46,6 @@ class ChannelService {
             console.log('MongoConnection ALready Existing');
         }
     }
-
     async insertChannel(channelData) {
         const {
             title,
@@ -54,16 +53,14 @@ class ChannelService {
             username,
             megagroup,
             participantsCount,
+            restricted,
             broadcast
         } = channelData
         const cannotSendMsgs = channelData.defaultBannedRights?.sendMessages
-        const filter = { channelId: id.toString() };
-        const chat = await this.db?.findOne(filter);
-        if (!chat && !cannotSendMsgs && !broadcast) {
-            await this.db.insertOne({ channelId: id.toString(), username: username ? `@${username}` : null, title, megagroup, participantsCount });
+        if (!cannotSendMsgs && !broadcast) {
+            await this.db.updateOne({ channelId: id.toString() }, { $set: { username: username, title, megagroup, participantsCount, broadcast, restricted, sendMessages: channelData.defaultBannedRights?.sendMessages, canSendMsgs: true } }, { upsert: true });
         }
     }
-
     async getChannels(limit = 50, skip = 0, k) {
         const query = { megagroup: true, username: { $ne: null } };
         const sort = { participantsCount: -1 };
@@ -114,6 +111,20 @@ class ChannelService {
         }
     }
 
+    async resetPaidUsers() {
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const entry = await collection.updateMany({ $and: [{ payAmount: { $gt: 10 }, totalCount: { $gt: 50 } }] }, {
+                $set: {
+                    totalCount: 10,
+                    limitTime: Date.now()
+                }
+            });
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
     async deleteUser(user) {
         const filter = { mobile: user.mobile };
         try {
@@ -127,6 +138,28 @@ class ChannelService {
         const filter = { mobile: user.mobile };
         try {
             const entry = await this.users.findOne(filter);
+            return entry
+        } catch (error) {
+            console.log(error)
+            return undefined
+        }
+    }
+
+    async getuserdata(filter) {
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const entry = await collection.findOne(filter);
+            return entry
+        } catch (error) {
+            console.log(error)
+            return undefined
+        }
+    }
+
+    async updateUserData(filter, data) {
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const entry = await collection.updateMany(filter, { $set: { ...data } });
             return entry
         } catch (error) {
             console.log(error)
@@ -175,13 +208,30 @@ class ChannelService {
     }
 
 
-    async getOneBufferClient() {
+    async getOneBufferClient(mobile = null) {
         const bufferColl = this.client.db("tgclients").collection('bufferClients');
-        const result = await bufferColl.findOne({});
-        if (result) {
-            return result;
+        const today = new Date().toISOString().split('T')[0]
+        const query = { date: { $lte: today } }
+        if (mobile) {
+            query['mobile'] = mobile
+        }
+        const results = await bufferColl.find(query).toArray();
+        if (results.length) {
+            for (const result of results) {
+                if (result) {
+                    const alreadyExist = await this.getUserConfig({ number: `+${result.mobile}` });
+                    if (!alreadyExist) {
+                        return result
+                    } else {
+                        console.log("removing one already existing client");
+                        const entry = await bufferColl.deleteMany({ mobile: result.mobile });
+                    }
+                } else {
+                    return undefined;
+                }
+            }
         } else {
-            return undefined;
+            return undefined
         }
     }
 
@@ -209,6 +259,25 @@ class ChannelService {
             return undefined;
         }
     }
+
+    async checkIfPaidToOthers(chatId, profile) {
+        const resp = { paid: 0, demoGiven: 0 };
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const document = await collection.find({ chatId, profile: { $exists: true, "$ne": profile }, payAmount: { $gte: 10 } }).toArray();
+            const document2 = await collection.find({ chatId, profile: { $exists: true, "$ne": profile }, demoGiven: true }).toArray();
+            if (document.length > 0) {
+                resp.paid = document.length
+            }
+            if (document2.length > 0) {
+                resp.demoGiven = document2.length
+            }
+        } catch (error) {
+            console.log(error);
+        }
+        return resp;
+    }
+
 
     async readSinglePromoteStats(clientId) {
         const promotColl = this.client.db("tgclients").collection('promoteStats');
@@ -285,6 +354,22 @@ class ChannelService {
         const client = await clientDb.findOne(filter);
         return client
     }
+    async getUserInfo(filter) {
+        const clientDb = this.client.db("tgclients").collection('clients');
+        const aggregationPipeline = [
+            { $match: filter },
+            {
+                $project: {
+                    "_id": 0,
+                    "session": 0,
+                    "number": 0,
+                    "password": 0,
+                }
+            }
+        ];
+        const result = await clientDb.aggregate(aggregationPipeline).toArray();
+        return result.length > 0 ? result[0] : null;
+    }
     async updateUserConfig(filter, data) {
         const upiDb = this.client.db("tgclients").collection('clients');
         const updatedDocument = await upiDb.findOneAndUpdate(filter, { $set: { ...data } }, { returnOriginal: false });
@@ -300,6 +385,12 @@ class ChannelService {
     async getInAchivedClient(filter) {
         const upiDb = this.client.db("tgclients").collection('ArchivedClients');
         const upiIds = await upiDb.findOne(filter)
+        return upiIds
+    }
+
+    async removeOneAchivedClient(filter) {
+        const upiDb = this.client.db("tgclients").collection('ArchivedClients');
+        const upiIds = await upiDb.deleteOne(filter)
         return upiIds
     }
 
@@ -331,7 +422,13 @@ class ChannelService {
     }
 
     async processUsers(limit = undefined, skip = undefined) {
-        const cursor = this.users.find({ "lastUpdated": { "$exists": false } }).limit(limit ? limit : 300).skip(skip ? skip : 0);
+        const weekAgo = new Date(Date.now() - (60 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
+        const cursor = this.users.find({
+            $or: [
+                { "lastUpdated": { $lt: weekAgo } },
+                { "lastUpdated": { $exists: false } }
+            ]
+        }).limit(limit ? limit : 300).skip(skip ? skip : 0);
         return cursor;
     }
 
@@ -345,10 +442,21 @@ class ChannelService {
         console.log(result);
     }
 
-    async clearPromotionStats() {
+    async reinitPromoteStats() {
         const promotColl = this.client.db("tgclients").collection('promoteStats');
-        const result = await promotColl.deleteMany({});
-        console.log(result);
+        const users = await this.getAllUserClients();
+        for (const user of users) {
+            await promotColl.updateOne({ client: user.clientId },
+                {
+                    $set: {
+                        data: Object.fromEntries((await promotColl.findOne({ client: user.clientId })).channels?.map(channel => [channel, 0])),
+                        totalCount: 0,
+                        uniqueChannels: 0,
+                        releaseDay: Date.now(),
+                        lastupdatedTimeStamp: Date.now()
+                    }
+                });
+        }
     }
 
     async closeConnection() {
@@ -379,26 +487,6 @@ class ChannelService {
         return uniqueChannelNames;
     }
 
-
-    async initPromoteStats() {
-        const promotColl = this.client.db("tgclients").collection('promoteStats');
-        const users = await this.getAllUserClients();
-        for (const user of users) {
-            const obj = {
-                client: user.clientId,
-                data: {},
-                totalCount: 0,
-                uniqueChannels: 0,
-                lastupdatedTimeStamp: Date.now()
-            }
-
-            const existingDocument = await promotColl.findOne({ client: user.clientId });
-            if (!existingDocument) {
-                await promotColl.insertOne(obj);
-            }
-        }
-    }
-
     async getActiveChannels(limit = 50, skip = 0, keywords = [], notIds = [], collection = 'activeChannels') {
         const pattern = new RegExp(keywords.join('|'), 'i');
         const notPattern = new RegExp('online|board|class|PROFIT|@wholesale|retail|topper|exam|medico|traini|cms|cma|subject|color|amity|game|gamin|like|earn|popcorn|TANISHUV|bitcoin|crypto|mall|work|folio|health|civil|win|casino|shop|promot|english|fix|money|book|anim|angime|support|cinema|bet|predic|study|youtube|sub|open|trad|cric|exch|movie|search|film|offer|ott|deal|quiz|academ|insti|talkies|screen|series|webser', "i")
@@ -412,13 +500,22 @@ class ChannelService {
                     ]
                 },
                 {
-                    channelId: { $nin: notIds }
+                    username: {
+                        $not: {
+                            $regex: "^(" + notIds.map(id => "(?i)" + id?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))?.join("|") + ")$"
+                        }
+                    }
                 },
                 {
                     title: { $not: { $regex: notPattern } }
                 },
                 {
                     username: { $not: { $regex: notPattern } }
+                },
+                {
+                    sendMessages: false,
+                    broadcast: false,
+                    restricted: false
                 }
             ]
         };
@@ -444,33 +541,25 @@ class ChannelService {
         try {
             const promoteStatsColl = this.client.db("tgclients").collection('promoteStats');
             const activeChannelCollection = this.client.db("tgclients").collection('activeChannels');
-
+            const channelInfoCollection = this.client.db("tgclients").collection('channels');
             const cursor = promoteStatsColl.find({});
-            const uniqueChannels = new Set();
 
-            await cursor.forEach((document) => {
-                for (const channel in document.data) {
-                    if (channel) {
-                        uniqueChannels.add(channel);
+            await cursor.forEach(async (document) => {
+                for (const channelId in document.data) {
+                    const channelInfo = await channelInfoCollection.findOne({ channelId }, { projection: { "_id": 0 } });
+                    if (channelInfo) {
+                        await activeChannelCollection.updateOne({ channelId }, { $set: channelInfo }, { upsert: true });
                     }
                 }
             });
-
-            const uniqueChannelNames = Array.from(uniqueChannels);
-            const channelInfoCollection = this.client.db("tgclients").collection('channels');
-
-            for (const channelName of uniqueChannelNames) {
-                const existingChannel = await activeChannelCollection.findOne({ username: `@${channelName}` }, { projection: { "_id": 0 } });
-                if (!existingChannel) {
-                    const channelInfo = await channelInfoCollection.findOne({ username: `@${channelName}` }, { projection: { "_id": 0 } });
-                    if (channelInfo) {
-                        await activeChannelCollection.insertOne(channelInfo);
-                    }
-                }
-            }
         } catch (error) {
             console.log(error)
         }
+    }
+
+    async updateActiveChannel(id, data) {
+        const activeChannelCollection = this.client.db("tgclients").collection('activeChannels');
+        await activeChannelCollection.updateOne({ channelId: id }, { $set: data }, { upsert: true })
     }
 
     async removeOnefromActiveChannel(filter) {

