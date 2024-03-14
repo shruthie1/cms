@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node --max-old-space-size=8192 index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "webpack --mode development"
+    "compile": "webpack --mode development",
+    "build":"npm i && npm run compile"
   },
   "keywords": [],
   "author": "",
