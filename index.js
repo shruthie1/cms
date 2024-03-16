@@ -14,6 +14,7 @@ const { sleep } = require('./utils');
 const { fetchWithTimeout } = require('./utils');
 const { execSync } = require('child_process');
 const { CloudinaryService } = require('./cloudinary')
+const path = require('path');
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -1604,11 +1605,11 @@ async function updateClient(clientId) {
             await sleep(3000)
             await client.updatePrivacy();
             await sleep(3000)
-            await client.updateProfilePic('./dp1.jpg');
+            await client.updateProfilePic(path.join(__dirname + './dp1.jpg'));
             await sleep(3000);
-            await client.updateProfilePic('./dp2.jpg');
+            await client.updateProfilePic(path.join(__dirname + './dp2.jpg'));
             await sleep(3000);
-            await client.updateProfilePic('./dp3.jpg');
+            await client.updateProfilePic(path.join(__dirname + './dp3.jpg'));
             await sleep(2000);
           }
         }
