@@ -1605,11 +1605,11 @@ async function updateClient(clientId) {
             await sleep(3000)
             await client.updatePrivacy();
             await sleep(3000)
-            await client.updateProfilePic(path.join(__dirname + './dp1.jpg'));
+            await client.updateProfilePic(path.join(__dirname + '/dp1.jpg'));
             await sleep(3000);
-            await client.updateProfilePic(path.join(__dirname + './dp2.jpg'));
+            await client.updateProfilePic(path.join(__dirname + '/dp2.jpg'));
             await sleep(3000);
-            await client.updateProfilePic(path.join(__dirname + './dp3.jpg'));
+            await client.updateProfilePic(path.join(__dirname + '/dp3.jpg'));
             await sleep(2000);
           }
         }
