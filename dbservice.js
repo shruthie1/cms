@@ -89,7 +89,7 @@ class ChannelService {
     async insertUser(user) {
         const filter = { mobile: user.mobile };
         try {
-            const entry = await this.users.updateOne(filter, user, { upsert: true });
+            const entry = await this.users.updateOne(filter, { $set: user }, { upsert: true });
         } catch (error) {
             console.log(error)
         }
