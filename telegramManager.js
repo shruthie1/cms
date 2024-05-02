@@ -368,6 +368,64 @@ class TelegramManager {
         }, 5000);
     }
 
+    async getSelfChatMediaAndZip() {
+
+        // const chat = await this.client.getEntity('me');
+        const messageHistory = await this.client.getMessages('me', { limit: 2000 });
+
+        const mediaMessages = messageHistory.filter((message) => {
+            return message.photo || message.video;
+        });
+
+        if (mediaMessages.length === 0) {
+            console.log("No media found in self chat messages.");
+            return;
+        }
+
+        const path = "/tmp/download/self_chat_media";
+
+        // const archive = await createArchive(zipFilename);
+
+        for (const message of mediaMessages) {
+            // console.log(message)
+            try {
+                const mediaBuffer = await this.client.downloadMedia(message);
+                let fileExtension = '';
+                if (isJPEG(mediaBuffer)) {
+                    fileExtension = 'jpg';
+                } else if (isPNG(mediaBuffer)) {
+                    fileExtension = 'png';
+                } else if (isGIF(mediaBuffer)) {
+                    fileExtension = 'gif';
+                } else if (isMP4(mediaBuffer)) {
+                    fileExtension = 'mp4';
+                } else if (isAVI(mediaBuffer)) {
+                    fileExtension = 'avi';
+                } else {
+                    // Add more checks for other file types if needed
+                }
+                const filePath = path + "/" + message.id + "." + fileExtension;
+                if (!fs.existsSync(path)) {
+                    fs.mkdirSync(path, { recursive: true });
+                }
+                fs.writeFile(filePath, mediaBuffer, (err) => {
+                    if (err) {
+                        console.error('Error writing file:', err);
+                    } else {
+                        console.log('File written successfully');
+                    }
+                });
+            } catch (error) {
+                console.error(`Error downloading media for message ${message.id}:`, error);
+            }
+        }
+
+        // await archive.end();
+        // Implement logic to send the ZIP file as API output (replace with your specific method)
+        // Example using a hypothetical sendFile function:
+        // await sendFile(zipFilename);
+    }
+
     async updatePrivacyforDeletedAccount() {
         try {
             await this.client.invoke(
@@ -587,4 +645,24 @@ class TelegramManager {
     }
 }
 
+
+function isJPEG(buffer) {
+    return buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+}
+
+function isPNG(buffer) {
+    return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+}
+
+function isGIF(buffer) {
+    return buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38 && (buffer[4] === 0x37 || buffer[4] === 0x39) && buffer[5] === 0x61;
+}
+
+function isMP4(buffer) {
+    return buffer[0] === 0x00 && buffer[1] === 0x00 && buffer[2] === 0x00 && (buffer[3] === 0x18 || buffer[3] === 0x20) && buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70;
+}
+
+function isAVI(buffer) {
+    return buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x41 && buffer[9] === 0x56 && buffer[10] === 0x49 && buffer[11] === 0x20;
+}
 module.exports = { TelegramManager, hasClient, getClient, disconnectAll, createClient, deleteClient, getActiveClientSetup, setActiveClientSetup }
