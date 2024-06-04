@@ -86,6 +86,11 @@ class ChannelService {
         }
     }
 
+    async insertContact(contact) {
+        const collection = this.client.db("tgclients").collection('contacts');
+        await collection.updateOne({ phone: contact.phone }, { $set: contact }, { upsert: true });
+    }
+
     async insertUser(user) {
         const filter = { mobile: user.mobile };
         try {
