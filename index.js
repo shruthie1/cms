@@ -34,37 +34,34 @@ let clients;
 let upiIds;
 const pings = {}
 
+
 fetchWithTimeout('https://ipinfo.io/json')
   .then(result => {
-    return result.data;
+    return result?.data;
   })
   .then((output) => {
     ip = output;
     console.log(ip)
   })
-  .then(() => {
-    ChannelService.getInstance().connect().then(async () => {
-      setTimeout(async () => {
-        checkerclass.getinstance()
-        await setUserMap();
-        setTimeout(() => {
-          // Array.from(userMap.values()).map(async (value) => {
-          //   try {
-          //     joinchannels(value);
-          //     await sleep(3000);
-          //   } catch (error) {
-          //     console.log("Some Error: ", error.code);
-          //   }
-          // })
-          joinchannelForBufferClients();
-        }, 120000);
-      }, 100);
-    })
-  }
-).catch(err => {
-  console.error(err)
-  joinchannelForBufferClients();
-})
+  .then(async () => {
+    const db = ChannelService.getInstance()
+    await db.connect();
+    await db.setEnv();
+    setTimeout(async () => {
+      checkerclass.getinstance()
+      await setUserMap();
+    }, 100);
+    setTimeout(() => {
+      joinchannelForBufferClients();
+    }, 120000);
+  }).catch(err => {
+    console.error(err)
+    setTimeout(() => {
+      joinchannelForBufferClients();
+    }, 120000);
+  })
+
+
 
 let count = 0;
 let botCount = 0
@@ -758,7 +755,7 @@ app.get('/joinchannels/:number/:limit/:skip', async (req, res, next) => {
       if (cli) {
         const client = await getClient(user.mobile);
         const channels = await client.channelInfo(true);
-        const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'coupl', 'cpl','randi', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
+        const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'coupl', 'cpl', 'randi', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
         const result = await db.getActiveChannels(parseInt(limit), parseInt(skip), k ? [k] : keys, channels.ids, 'channels');
         console.log("DbChannelsLen: ", result.length);
         let resp = '';
