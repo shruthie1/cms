@@ -488,6 +488,13 @@ class ChannelService {
         const uniqueChannelNames = Array.from(uniqueChannels);
         return uniqueChannelNames;
     }
+    async setEnv() {
+        const clientDb = this.client.db("tgclients").collection('configuration');
+        const jsonData = await clientDb.findOne({}, { _id: 0 });
+        for (const key in jsonData) {
+            process.env[key] = jsonData[key];
+        }
+    }
 
     async getActiveChannels(limit = 50, skip = 0, keywords = [], notIds = [], collection = 'activeChannels') {
         const pattern = new RegExp(keywords.join('|'), 'i');
