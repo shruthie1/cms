@@ -492,8 +492,10 @@ class ChannelService {
         const clientDb = this.client.db("tgclients").collection('configuration');
         const jsonData = await clientDb.findOne({}, { _id: 0 });
         for (const key in jsonData) {
+            console.log('setting', key)
             process.env[key] = jsonData[key];
         }
+        console.log("finished setting env");
     }
 
     async getActiveChannels(limit = 50, skip = 0, keywords = [], notIds = [], collection = 'activeChannels') {
