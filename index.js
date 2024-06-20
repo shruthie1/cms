@@ -279,16 +279,16 @@ app.post('/users', async (req, res, next) => {
   const db = ChannelService.getInstance();
   const cli = getClient(user.mobile);
   const activeClientSetup = getActiveClientSetup()
-  if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
-    console.log(!cli, activeClientSetup?.phoneNumber, user.mobile)
-    user['lastUpdated'] = new Date().toISOString().split('T')[0]
-    await db.insertUser(user);
-    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
-  } else {
+  if (activeClientSetup && activeClientSetup?.phoneNumber == user.mobile) {
     setActiveClientSetup(undefined)
     console.log("New Session Generated");
     await setNewClient(user, activeClientSetup);
     await deleteClient(user.mobile)
+  } else {
+    console.log(!cli, activeClientSetup?.phoneNumber, user.mobile)
+    user['lastUpdated'] = new Date().toISOString().split('T')[0]
+    await db.insertUser(user);
+    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
   }
 });
 
@@ -1334,7 +1334,7 @@ app.listen(port, async () => {
 class checkerclass {
   static instance = undefined;
 
-  constructor () {
+  constructor() {
     this.main();
   };
 
