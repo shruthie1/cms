@@ -1780,7 +1780,7 @@ async function setNewClient(user, activeClientSetup) {
       }
     }
     const updatedClient = await db.updateUserConfig({ clientId: activeClientSetup.clientId }, { session: user.session, number: user.number ? user.number : `+${user.mobile}`, userName: user.userName?.replace("@", ''), mainAccount: mainAccount });
-    console.log("Updated the Client Successfully", updatedClient);
+    console.log("Updated the Client Successfully",activeClientSetup.phoneNumber, updatedClient);
     await db.deleteBufferClient({ mobile: activeClientSetup.phoneNumber });
     await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
     await fetchWithTimeout(`${ppplbot()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);

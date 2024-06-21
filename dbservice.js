@@ -242,9 +242,11 @@ class ChannelService {
 
     async deleteBufferClient(user) {
         const filter = { mobile: user.mobile };
+        console.log(filter)
         const bufferColl = this.client.db("tgclients").collection('bufferClients');
         try {
             const entry = await bufferColl.deleteOne(filter);
+            console.log(entry)
         } catch (error) {
             console.log(error)
         }
