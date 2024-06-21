@@ -385,7 +385,7 @@ class ChannelService {
         return updatedDocument.value;
     }
 
-    async readAchivedClients(filter, limit) {
+    async readArchivedClients(filter, limit) {
         const bufferColl = this.client.db("tgclients").collection('ArchivedClients');
         const query = filter || {};
         const queryWithLimit = limit ? bufferColl.find(query).limit(limit) : bufferColl.find(query);

