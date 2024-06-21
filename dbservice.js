@@ -220,7 +220,6 @@ class ChannelService {
         }
         console.log(query)
         const results = await bufferColl.find(query).toArray();
-        console.log(results)
         if (results.length) {
             for (const result of results) {
                 if (result) {
