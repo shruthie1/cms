@@ -1691,7 +1691,7 @@ async function setUpClient(clientId, archieveOld, days = 0, mobile = null, forma
 
     const newClient = await db.getOneBufferClient(mobile);
 
-    await deleteClient(newClient.mobile)
+    await deleteClient(newClient?.mobile)
     await sleep(2000);
     if (newClient) {
       const cli = await createClient(newClient.mobile, newClient.session, false);
