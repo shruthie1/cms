@@ -215,9 +215,12 @@ class ChannelService {
         const today = new Date().toISOString().split('T')[0]
         const query = { date: { $lte: today } }
         if (mobile) {
+            console.log(mobile)
             query['mobile'] = mobile
         }
+        console.log(query)
         const results = await bufferColl.find(query).toArray();
+        console.log(results)
         if (results.length) {
             for (const result of results) {
                 if (result) {
@@ -233,6 +236,7 @@ class ChannelService {
                 }
             }
         } else {
+            console.log("returnimg undefind")
             return undefined
         }
     }
