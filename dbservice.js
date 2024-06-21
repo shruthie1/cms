@@ -191,7 +191,7 @@ class ChannelService {
         const filter = { mobile: user.mobile };
         try {
             const bufferColl = this.client.db("tgclients").collection('bufferClients');
-            await bufferColl.updateOne(filter, { $set: { ...user } }, { upsert: true });
+            await bufferColl.updateOne(filter, { $set: { ...user, date:new Date().toISOString().split('T')[0] } }, { upsert: true });
         } catch (error) {
             console.log(error)
         }
