@@ -52,12 +52,16 @@ fetchWithTimeout('https://ipinfo.io/json')
       await setUserMap();
     }, 100);
     setTimeout(() => {
-      joinchannelForBufferClients();
+      if (!getActiveClientSetup()) {
+        joinchannelForBufferClients();
+      }
     }, 120000);
   }).catch(err => {
     console.error(err)
     setTimeout(() => {
-      joinchannelForBufferClients();
+      if (!getActiveClientSetup()) {
+        joinchannelForBufferClients();
+      }
     }, 120000);
   })
 
