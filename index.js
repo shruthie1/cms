@@ -1742,11 +1742,12 @@ async function generateNewSession(phoneNumber) {
   try {
     console.log("String Generation started");
     await sleep(1000);
-    const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
+    const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber.toString()}&force=${true}`, { timeout: 15000 }, 1);
     if (response) {
-      console.log(`Code Sent successfully-${JSON.stringify(response)}`);
+      console.log(`Code Sent successfully`, response);
       await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
     } else {
+      console.log(`Failed to send Code-${JSON.stringify(response)}`);
       await sleep(5000);
       await generateNewSession(phoneNumber);
     }
