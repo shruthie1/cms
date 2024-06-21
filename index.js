@@ -164,6 +164,13 @@ app.get('/checkBufferClients', async (req, res, next) => {
 }, async (req, res) => {
   await checkBufferClients();
 });
+app.get('/checkArchivedClients', async (req, res, next) => {
+  checkerclass.getinstance()
+  res.send('Checking Buffer Clients');
+  next();
+}, async (req, res) => {
+  await checkArchivedClients();
+});
 
 app.get('/processUsers/:limit/:skip', async (req, res, next) => {
   res.send("ok")
@@ -1562,6 +1569,23 @@ async function checkBufferClients() {
   console.log(badIds, goodIds);
   await addNewUserstoBufferClients();
 }
+
+async function checkArchivedClients() {
+  const db = await ChannelService.getInstance();
+  await disconnectAll()
+  await sleep(2000);
+  const clients = await db.readArchivedClients({});
+  for (const document of clients) {
+    console.log(document)
+    const cli = await createClient(document.mobile, document.session);
+    if (!cli) {
+      console.log(document.mobile, " :  false");
+      badIds.push(document.mobile);
+      await db.removeOneAchivedClient({number: document.number})
+    }
+  }
+}
+
 
 async function addNewUserstoBufferClients() {
   const db = await ChannelService.getInstance();

@@ -377,10 +377,24 @@ class ChannelService {
         const result = await clientDb.aggregate(aggregationPipeline).toArray();
         return result.length > 0 ? result[0] : null;
     }
+
+    
     async updateUserConfig(filter, data) {
         const upiDb = this.client.db("tgclients").collection('clients');
         const updatedDocument = await upiDb.findOneAndUpdate(filter, { $set: { ...data } }, { returnOriginal: false });
         return updatedDocument.value;
+    }
+
+    async readAchivedClients(filter, limit) {
+        const bufferColl = this.client.db("tgclients").collection('ArchivedClients');
+        const query = filter || {};
+        const queryWithLimit = limit ? bufferColl.find(query).limit(limit) : bufferColl.find(query);
+        const result = await queryWithLimit.toArray();
+        if (result?.length > 0) {
+            return result;
+        } else {
+            return [];
+        }
     }
 
     async insertInAchivedClient(data) {
