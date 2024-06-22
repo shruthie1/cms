@@ -146,6 +146,7 @@ export class ClientService {
     }
 
     async updateClient(session: string, mobile: string, userName: string, clientId: string) {
+        console.log("Updating Client session")
         const newClient = await this.update(clientId, { session: session, mobile, userName, mainAccount: userName });
         if (fetchNumbersFromString(clientId) == '2') {
             const client2 = clientId.replace("1", "2")
