@@ -28,6 +28,7 @@ export async function fetchWithTimeout(resource, options = {}, maxRetries = 3) {
       if (axios.isCancel(error)) {
         console.log('Request canceled:', error.message, resource);
       } else {
+        console.log("URL: ", resource)
         parseError(error)
       }
       if (retryCount < maxRetries) {
