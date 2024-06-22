@@ -127,6 +127,7 @@ export function parseError(
   return resp
 }
 
+let botCount = 0
 export const ppplbot = () => {
   let token;
   if (botCount % 2 == 1) {

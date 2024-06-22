@@ -17,7 +17,7 @@ import {
   getActiveClientSetup
 } from './telegramManager';
 import bodyParser from 'body-parser';
-import { sleep, fetchWithTimeout , ppplbot, fetchNumbersFromString} from './utils';
+import { sleep, fetchWithTimeout, ppplbot, fetchNumbersFromString } from './utils';
 import { execSync } from 'child_process';
 import { CloudinaryService } from './cloudinary';
 import fs from 'fs';
