@@ -14,7 +14,7 @@ export class CreateClientDto {
     readonly name: string;
   
     @ApiProperty({ example: '+916265240911', description: 'Phone number of the user' })
-    readonly number: string;
+    readonly mobile: string;
   
     @ApiProperty({ example: 'Ajtdmwajt1@', description: 'Password of the user' })
     readonly password: string;
