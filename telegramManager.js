@@ -1,40 +1,39 @@
-const { TelegramClient, Api } = require('telegram');
-const { NewMessage } = require("telegram/events/index.js");
-const axios = require('axios');
-const { StringSession } = require('telegram/sessions');
-const { isMailReady, getcode, connectToMail, disconnectfromMail } = require('./mailreader')
-const ppplbot = "https://api.telegram.org/bot6877935636:AAGsHAU-O2B2klPMwDrr0PfkBHXib74K1Nc/sendMessage";
-const { CustomFile } = require("telegram/client/uploads");
-const { sleep } = require('./utils')
-const fs = require('fs');
-const ChannelService = require('./dbservice');
+import { TelegramClient, Api } from 'telegram';
+import { NewMessage } from 'telegram/events/index.js';
+import axios from 'axios';
+import { StringSession } from 'telegram/sessions';
+import { isMailReady, getcode, connectToMail, disconnectfromMail } from './mailreader';
+import { CustomFile } from 'telegram/client/uploads';
+import { sleep, parseError, contains } from './utils';
+import fs from 'fs';
+import { ChannelService } from './dbservice';
 
 const clients = new Map();
 
 let activeClientSetup = undefined
-function getActiveClientSetup() {
+export function getActiveClientSetup() {
     return activeClientSetup;
 }
 
-function setActiveClientSetup(data) {
+export function setActiveClientSetup(data) {
     activeClientSetup = data
 }
 
-function getClient(number) {
+export function getClient(number) {
     return clients.get(number);
 }
 
-function hasClient(number) {
+export function hasClient(number) {
     return clients.has(number);
 }
 
-async function deleteClient(number) {
+export async function deleteClient(number) {
     const cli = getClient(number);
     await cli?.disconnect();
     return clients.delete(number);
 }
 
-async function disconnectAll() {
+export async function disconnectAll() {
     const data = clients.entries();
     console.log("Disconnecting All Clients");
     for (const [phoneNumber, client] of data) {
@@ -50,7 +49,7 @@ async function disconnectAll() {
 }
 
 
-async function createClient(number, session, autoDisconnect = true) {
+export async function createClient(number, session, autoDisconnect = true) {
     if (!clients.has(number)) {
         return new Promise(async (resolve) => {
             const cli = new TelegramManager(session, number);
@@ -666,4 +665,3 @@ function isMP4(buffer) {
 function isAVI(buffer) {
     return buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x41 && buffer[9] === 0x56 && buffer[10] === 0x49 && buffer[11] === 0x20;
 }
-module.exports = { TelegramManager, hasClient, getClient, disconnectAll, createClient, deleteClient, getActiveClientSetup, setActiveClientSetup }
