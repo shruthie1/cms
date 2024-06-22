@@ -46,7 +46,7 @@ export class User extends mongoose.Document {
 
   @ApiProperty()
   @Prop()
-  lastActive: number;
+  lastActive: string;
 
   @ApiProperty()
   @Prop()
@@ -80,11 +80,11 @@ export class User extends mongoose.Document {
   @Prop()
   username: string | null;
 
-  @Prop({ required: true , type: Boolean})
-  twoFa: boolean;
+  @Prop({ required: false , type: Boolean})
+  twoFa: boolean = false
 
-  @Prop({ required: true })
-  password: string;
+  @Prop({ required: false })
+  password: string = null
 
   @ApiProperty()
   @Prop()
