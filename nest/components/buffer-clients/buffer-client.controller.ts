@@ -8,7 +8,7 @@ import { BufferClient } from './schemas/buffer-client.schema';
 @ApiTags('Buffer Clients')
 @Controller('bufferclients')
 export class BufferClientController {
-  constructor(private readonly clientService: BufferClientService) {}
+  constructor(private readonly clientService: BufferClientService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create user data' })
@@ -28,6 +28,21 @@ export class BufferClientController {
   @ApiOperation({ summary: 'Search user data' })
   async search(@Query() query: SearchBufferClientDto): Promise<BufferClient[]> {
     return this.clientService.search(query);
+  }
+
+  @Get('checkBufferClients')
+  @ApiOperation({ summary: 'checkBufferClients' })
+  async checkbufferClients(): Promise<string> {
+    this.clientService.checkBufferClients();
+    return "initiated Checking"
+  }
+
+  @Post('addNewUserstoBufferClients')
+  @ApiOperation({ summary: 'checkBufferClients' })
+  @ApiBody({ type: Object })
+  async addNewUserstoBufferClients(@Body() body: { goodIds: string[], badIds: string[] }): Promise<string> {
+    this.clientService.addNewUserstoBufferClients(body.badIds, body.goodIds);
+    return "initiated Checking"
   }
 
   @Get()
@@ -56,7 +71,7 @@ export class BufferClientController {
 
   @Post('query')
   @ApiOperation({ summary: 'Execute a custom MongoDB query' })
-  @ApiBody({type: Object})
+  @ApiBody({ type: Object })
   async executeQuery(@Body() query: object): Promise<any> {
     try {
       return await this.clientService.executeQuery(query);
@@ -64,4 +79,5 @@ export class BufferClientController {
       throw error;  // You might want to handle errors more gracefully
     }
   }
+
 }

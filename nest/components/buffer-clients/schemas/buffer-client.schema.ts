@@ -17,6 +17,9 @@ export class BufferClient extends Document {
 
   @Prop({ required: true })
   availableDate: string;
+
+  @Prop({ required: true })
+  channels: Number;
 }
 
 export const BufferClientSchema = SchemaFactory.createForClass(BufferClient);

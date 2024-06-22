@@ -68,12 +68,21 @@ export class UsersService {
     return this.userModel.find(filter).exec();
   }
 
-  async executeQuery(query: any): Promise<any> {
+  async executeQuery(query: any, sort?: any, limit?: number): Promise<User[]> {
     try {
       if (!query) {
         throw new BadRequestException('Query is invalid.');
       }
-      return await this.userModel.find(query).exec();
+      const queryExec = this.userModel.find(query);
+      if (sort) {
+        queryExec.sort(sort);
+      }
+
+      if (limit) {
+        queryExec.limit(limit);
+      }
+
+      return await queryExec.exec();
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

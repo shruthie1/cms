@@ -1,11 +1,10 @@
 // src/activechannels/activechannels.service.ts
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateActiveChannelDto } from './dto/create-active-channel.dto';
 import { UpdateActiveChannelDto } from './dto/update-active-channel.dto';
 import { ActiveChannel } from './schemas/active-channel.schema';
-
 @Injectable()
 export class ActiveChannelsService {
   constructor(
@@ -68,5 +67,68 @@ export class ActiveChannelsService {
       $pull: { reactions: reaction }
     })
     return channel;
+  }
+
+  async getActiveChannels(limit = 50, skip = 0, keywords = [], notIds = []) {
+    const pattern = new RegExp(keywords.join('|'), 'i');
+    const notPattern = new RegExp('online|board|class|PROFIT|wholesale|retail|topper|exam|motivat|medico|shop|follower|insta|traini|cms|cma|subject|currency|color|amity|game|gamin|like|earn|popcorn|TANISHUV|bitcoin|crypto|mall|work|folio|health|civil|win|casino|shop|promot|english|invest|fix|money|book|anim|angime|support|cinema|bet|predic|study|youtube|sub|open|trad|cric|quot|exch|movie|search|film|offer|ott|deal|quiz|academ|insti|talkies|screen|series|webser', "i")
+    let query = {
+      $and: [
+        { username: { $ne: null } },
+        {
+          $or: [
+            { title: { $regex: pattern } },
+            { username: { $regex: pattern } }
+          ]
+        },
+        {
+          username: {
+            $not: {
+              $regex: "^(" + notIds.map(id => "(?i)" + id?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))?.join("|") + ")$"
+            }
+          }
+        },
+        {
+          title: { $not: { $regex: notPattern } }
+        },
+        {
+          username: { $not: { $regex: notPattern } }
+        },
+        {
+          sendMessages: false,
+          broadcast: false,
+          restricted: false
+        }
+      ]
+    };
+
+    const sort: { participantsCount: "desc" } = { participantsCount: "desc" };
+    try {
+      const result: ActiveChannel[] = await this.activeChannelModel.find(query).sort(sort).skip(skip).limit(limit).exec();
+      return result;
+    } catch (error) {
+      console.error('Error:', error);
+      return [];
+    }
+  }
+
+  async executeQuery(query: any, sort?: any, limit?: number): Promise<ActiveChannel[]> {
+    try {
+      if (!query) {
+        throw new BadRequestException('Query is invalid.');
+      }
+      const queryExec = this.activeChannelModel.find(query);
+      if (sort) {
+        queryExec.sort(sort);
+      }
+
+      if (limit) {
+        queryExec.limit(limit);
+      }
+
+      return await queryExec.exec();
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

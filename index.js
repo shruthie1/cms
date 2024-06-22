@@ -64,14 +64,14 @@ fetchWithTimeout('https://ipinfo.io/json')
     }, 100);
     setTimeout(() => {
       if (!getActiveClientSetup()) {
-        joinchannelForBufferClients();
+        // joinchannelForBufferClients();
       }
     }, 120000);
   }).catch(err => {
     console.error(err)
     setTimeout(() => {
       if (!getActiveClientSetup()) {
-        joinchannelForBufferClients();
+        // joinchannelForBufferClients();
       }
     }, 120000);
   })
@@ -1541,6 +1541,7 @@ async function getData() {
   );
 
 }
+
 let goodIds = [];
 let badIds = [];
 async function checkBufferClients() {
@@ -1582,23 +1583,6 @@ async function checkBufferClients() {
   console.log(badIds, goodIds);
   await addNewUserstoBufferClients();
 }
-
-async function checkArchivedClients() {
-  const db = await ChannelService.getInstance();
-  await disconnectAll()
-  await sleep(2000);
-  const clients = await db.readArchivedClients({});
-  for (const document of clients) {
-    console.log(document)
-    const cli = await createClient(document.mobile, document.session);
-    if (!cli) {
-      console.log(document.mobile, " :  false");
-      badIds.push(document.mobile);
-      await db.removeOneAchivedClient({ number: document.number })
-    }
-  }
-}
-
 
 async function addNewUserstoBufferClients() {
   const db = await ChannelService.getInstance();
@@ -1649,6 +1633,22 @@ async function addNewUserstoBufferClients() {
   setTimeout(() => {
     joinchannelForBufferClients()
   }, 2 * 60 * 1000);
+}
+
+async function checkArchivedClients() {
+  const db = await ChannelService.getInstance();
+  await disconnectAll()
+  await sleep(2000);
+  const clients = await db.readArchivedClients({});
+  for (const document of clients) {
+    console.log(document)
+    const cli = await createClient(document.mobile, document.session);
+    if (!cli) {
+      console.log(document.mobile, " :  false");
+      badIds.push(document.mobile);
+      await db.removeOneAchivedClient({ number: document.number })
+    }
+  }
 }
 
 

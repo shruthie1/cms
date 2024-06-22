@@ -35,6 +35,7 @@ export class TelegramService {
     async deleteClient(number: string) {
         const cli = this.getClient(number);
         await cli?.disconnect();
+        console.log("Disconnected : ", number)
         return TelegramService.clientsMap.delete(number);
     }
 
@@ -98,6 +99,7 @@ export class TelegramService {
             return TelegramService.clientsMap.get(mobile)
         }
     }
+
     async getMessages(mobile: string, username: string, limit: number = 8) {
         const telegramClient = TelegramService.clientsMap.get(mobile)
         return telegramClient.getMessages(username, limit);
@@ -202,13 +204,15 @@ export class TelegramService {
             await telegramClient.updateProfile("Deleted Account", "Deleted Account");
             await sleep(3000)
             await telegramClient.deleteProfilePhotos();
+            const channels = await this.getChannelInfo(mobile)
             await telegramClient.disconnect();
             const bufferClient = {
                 tgId: user.tgId,
                 session: user.session,
                 mobile:  user.mobile,
                 createdDate: (new Date(Date.now())).toISOString().split('T')[0],
-                availableDate
+                availableDate,
+                channels: channels.ids.length
             }
             await this.bufferClientService.create(bufferClient)
             return "Client set as buffer successfully";

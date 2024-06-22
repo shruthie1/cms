@@ -11,5 +11,6 @@ import { ActiveChannel, ActiveChannelSchema } from './schemas/active-channel.sch
   ],
   controllers: [ActiveChannelsController],
   providers: [ActiveChannelsService],
+  exports: [ActiveChannelsService]
 })
-export class ActiveChannelsModule {}
+export class ActiveChannelsModule { }

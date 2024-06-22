@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {  IsString } from 'class-validator';
+import {  IsNumber, IsString } from 'class-validator';
 
 export class CreateBufferClientDto {
   @ApiProperty({
@@ -36,4 +36,11 @@ export class CreateBufferClientDto {
   })
   @IsString()
   readonly session: string;
+
+  @ApiProperty({
+    description: 'Channel Count',
+    example: 23,
+  })
+  @IsNumber()
+  readonly channels: number;
 }

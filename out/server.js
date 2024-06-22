@@ -872,7 +872,6 @@ dotenv__WEBPACK_IMPORTED_MODULE_0___default().config();
 
 
 
-
 var cors = __webpack_require__(/*! cors */ "cors");
 const app = express__WEBPACK_IMPORTED_MODULE_1___default()();
 const port = process.env.PORT || 4000;
@@ -924,16 +923,7 @@ const pings = {}
 
 let count = 0;
 let botCount = 0
-const ppplbot = () => {
-  let token;
-  if (botCount % 2 == 1) {
-    token = `bot6624618034:AAHoM3GYaw3_uRadOWYzT7c2OEp6a7A61mY`
-  } else {
-    token = `bot6607225097:AAG6DJg9Ll5XVxy24Nr449LTZgRb5bgshUA`
-  }
 
-  return `https://api.telegram.org/${token}/sendMessage?chat_id=-1001801844217`
-}
 const pingerbot = `https://api.telegram.org/bot5807856562:${process.env.apikey}/sendMessage?chat_id=-1001703065531`;
 
 const apiResp = {
@@ -948,7 +938,7 @@ const apiResp = {
 async function setUserMap() {
   userMap.clear();
   const db = _dbservice__WEBPACK_IMPORTED_MODULE_4__.ChannelService.getInstance();
-  await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=UptimeRobot : Refreshed Map`);
+  await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=UptimeRobot : Refreshed Map`);
   const users = await db.getAllUserClients();
   clients = users
   upiIds = await db.getAllUpis()
@@ -1101,7 +1091,7 @@ app.get('/setupClient/:clientId', async (req, res, next) => {
     const formalities = req?.query?.f;
     const PLimited = !!req.query.PLimited;
     console.log(clientId, archieveOld);
-    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=Received NEw Client Request for - ${clientId}`);
+    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=Received NEw Client Request for - ${clientId}`);
     await setUpClient(clientId.toString(), archieveOld?.toLowerCase() === 'yes' ? true : false, days, mobile, formalities?.toLowerCase() === 'no' ? false : true, PLimited)
   } else {
     console.log("Profile Setup Recently tried");
@@ -1153,7 +1143,7 @@ app.post('/users', async (req, res, next) => {
     console.log(!cli, activeClientSetup?.phoneNumber, user.mobile)
     user['lastUpdated'] = new Date().toISOString().split('T')[0]
     await db.insertUser(user);
-    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
+    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
   }
 });
 
@@ -2243,11 +2233,11 @@ class checkerclass {
               console.log(resp.data.userName, ': All good');
             } else {
               console.log(resp.data.userName, ': DIAGNOSE - HealthCheck - ', resp.data.status);
-              await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=${(resp.data.userName).toUpperCase()}:HealthCheckError-${resp.data.status}`);
+              await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=${(resp.data.userName).toUpperCase()}:HealthCheckError-${resp.data.status}`);
               try {
                 const connectResp = await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${url}tryToConnect/${processId}`, { timeout: 10000 });
                 console.log(connectResp.data.userName, ': RetryResp - ', connectResp.data.status);
-                await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=${(connectResp.data.userName).toUpperCase()}:RetryResponse-${connectResp.data.status}`);
+                await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=${(connectResp.data.userName).toUpperCase()}:RetryResponse-${connectResp.data.status}`);
               } catch (e) {
                 console.log(url, `CONNECTION RESTART FAILED!!`);
               }
@@ -2272,9 +2262,9 @@ class checkerclass {
 async function joinchannels(value) {
   try {
     let resp = await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${value.url}channelinfo`, { timeout: 200000 });
-    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(ppplbot())}&text=ChannelCount SendTrue - ${value.clientId}: ${resp.data.canSendTrueCount}`)
+    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${((0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)())}&text=ChannelCount SendTrue - ${value.clientId}: ${resp.data.canSendTrueCount}`)
     if (resp?.data?.canSendTrueCount && resp?.data?.canSendTrueCount < 250) {
-      await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=Started Joining Channels- ${value.clientId}`)
+      await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=Started Joining Channels- ${value.clientId}`)
       const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'randi', 'coupl', 'cpl', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
       const db = _dbservice__WEBPACK_IMPORTED_MODULE_4__.ChannelService.getInstance();
       const channels = await db.getActiveChannels(100, 0, keys, resp.data?.ids, 'activeChannels');
@@ -2394,6 +2384,7 @@ async function getData() {
   );
 
 }
+
 let goodIds = [];
 let badIds = [];
 async function checkBufferClients() {
@@ -2435,23 +2426,6 @@ async function checkBufferClients() {
   console.log(badIds, goodIds);
   await addNewUserstoBufferClients();
 }
-
-async function checkArchivedClients() {
-  const db = await _dbservice__WEBPACK_IMPORTED_MODULE_4__.ChannelService.getInstance();
-  await (0,_telegramManager__WEBPACK_IMPORTED_MODULE_5__.disconnectAll)()
-  await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(2000);
-  const clients = await db.readArchivedClients({});
-  for (const document of clients) {
-    console.log(document)
-    const cli = await (0,_telegramManager__WEBPACK_IMPORTED_MODULE_5__.createClient)(document.mobile, document.session);
-    if (!cli) {
-      console.log(document.mobile, " :  false");
-      badIds.push(document.mobile);
-      await db.removeOneAchivedClient({ number: document.number })
-    }
-  }
-}
-
 
 async function addNewUserstoBufferClients() {
   const db = await _dbservice__WEBPACK_IMPORTED_MODULE_4__.ChannelService.getInstance();
@@ -2504,6 +2478,22 @@ async function addNewUserstoBufferClients() {
   }, 2 * 60 * 1000);
 }
 
+async function checkArchivedClients() {
+  const db = await _dbservice__WEBPACK_IMPORTED_MODULE_4__.ChannelService.getInstance();
+  await (0,_telegramManager__WEBPACK_IMPORTED_MODULE_5__.disconnectAll)()
+  await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(2000);
+  const clients = await db.readArchivedClients({});
+  for (const document of clients) {
+    console.log(document)
+    const cli = await (0,_telegramManager__WEBPACK_IMPORTED_MODULE_5__.createClient)(document.mobile, document.session);
+    if (!cli) {
+      console.log(document.mobile, " :  false");
+      badIds.push(document.mobile);
+      await db.removeOneAchivedClient({ number: document.number })
+    }
+  }
+}
+
 
 async function updateClient(clientId) {
   try {
@@ -2513,7 +2503,7 @@ async function updateClient(clientId) {
     const oldClient = await db.getUserConfig({ clientId })
     if (oldClient) {
       try {
-        const oldClientUser = await db.getUser({ mobile: (oldClient?.number.toString()).replace("+", '') });
+        const oldClientUser = await db.getUser({ mobile: (oldClient?.mobile.toString()).replace("+", '') });
         if (oldClientUser) {
           const cli = await (0,_telegramManager__WEBPACK_IMPORTED_MODULE_5__.createClient)(oldClientUser?.mobile, oldClientUser?.session);
           if (cli) {
@@ -2573,13 +2563,13 @@ async function setUpClient(clientId, archieveOld, days = 0, mobile = null, forma
         }
       } catch (error) {
         console.log("Error updateing settings of old Client - ", error);
-        await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=Error updateing settings of old Client - ${clientId}`);
+        await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=Error updateing settings of old Client - ${clientId}`);
       }
       delete oldClient['_id']
       oldClient['insertedDate'] = new Date().toISOString().split('T')[0]
       oldClient['pLimited'] = pLimited
       await db.insertInAchivedClient(oldClient);
-      await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=Archived Old Client ${clientId}`);
+      await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=Archived Old Client ${clientId}`);
       console.log("Archived old client");
     }
 
@@ -2604,12 +2594,12 @@ async function setUpClient(clientId, archieveOld, days = 0, mobile = null, forma
         await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(2000)
         const existingData = await db.getInAchivedClient({ number: `+${newClient.mobile}` });
         if (existingData) {
-          await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=Setting UP from archives - ${clientId}-${newUsername}-${newClient.mobile}`);
+          await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=Setting UP from archives - ${clientId}-${newUsername}-${newClient.mobile}`);
           console.log("Data Existing already");
           await setNewClient({ ...existingData, userName: newUsername }, { clientId });
           await db.removeOneAchivedClient({ number: `+${newClient.mobile}` });
         } else {
-          await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=Generating new Session -  ${clientId}-${newUsername}-${newClient.mobile}`);
+          await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=Generating new Session -  ${clientId}-${newUsername}-${newClient.mobile}`);
           await generateNewSession(newClient.mobile);
           setTimeout(async () => {
             const stillExists = await db.getOneBufferClient(newClient.mobile);
@@ -2635,7 +2625,7 @@ async function generateNewSession(phoneNumber) {
     const response = await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`https://tgsignup.onrender.com/login?phone=${phoneNumber.toString()}&force=${true}`, { timeout: 15000 }, 1);
     if (response) {
       console.log(`Code Sent successfully`, response);
-      await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
+      await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
     } else {
       console.log(`Failed to send Code-${JSON.stringify(response)}`);
       await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(5000);
@@ -2673,7 +2663,7 @@ async function setNewClient(user, activeClientSetup) {
     console.log("Updated the Client Successfully", activeClientSetup.phoneNumber, updatedClient);
     await db.deleteBufferClient({ mobile: activeClientSetup.phoneNumber });
     await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
-    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${ppplbot()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);
+    await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.fetchWithTimeout)(`${(0,_utils__WEBPACK_IMPORTED_MODULE_7__.ppplbot)()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);
     console.log(activeClientSetup.clientId, " -  ", updatedClient)
     if (updatedClient?.userName) {
       try {
@@ -3524,6 +3514,7 @@ let TelegramService = TelegramService_1 = class TelegramService {
         return __awaiter(this, void 0, void 0, function* () {
             const cli = this.getClient(number);
             yield (cli === null || cli === void 0 ? void 0 : cli.disconnect());
+            console.log("Disconneted : ", number);
             return TelegramService_1.clientsMap.delete(number);
         });
     }
@@ -3713,8 +3704,17 @@ let TelegramService = TelegramService_1 = class TelegramService {
                 yield telegramClient.updateProfile("Deleted Account", "Deleted Account");
                 yield (0, utils_1.sleep)(3000);
                 yield telegramClient.deleteProfilePhotos();
+                const channels = yield this.getChannelInfo(mobile);
                 yield telegramClient.disconnect();
-                yield this.bufferClientService.create(Object.assign(Object.assign({}, user), { availableDate, createdDate: (new Date(Date.now())).toISOString().split('T')[0] }));
+                const bufferClient = {
+                    tgId: user.tgId,
+                    session: user.session,
+                    mobile: user.mobile,
+                    createdDate: (new Date(Date.now())).toISOString().split('T')[0],
+                    availableDate,
+                    channels: channels.ids.length
+                };
+                yield this.bufferClientService.create(bufferClient);
                 return "Client set as buffer successfully";
             }
             catch (error) {
@@ -4098,7 +4098,7 @@ class TelegramManager {
                             console.log("Code Sent back");
                         }
                         catch (error) {
-                            console.log(error);
+                            (0, utils_1.parseError)(error);
                         }
                     }
                     else {
@@ -4634,6 +4634,7 @@ exports.ActiveChannelsModule = ActiveChannelsModule = __decorate([
         ],
         controllers: [activechannels_controller_1.ActiveChannelsController],
         providers: [activechannels_service_1.ActiveChannelsService],
+        exports: [activechannels_service_1.ActiveChannelsService]
     })
 ], ActiveChannelsModule);
 
@@ -4740,6 +4741,71 @@ let ActiveChannelsService = class ActiveChannelsService {
                 $pull: { reactions: reaction }
             });
             return channel;
+        });
+    }
+    getActiveChannels() {
+        return __awaiter(this, arguments, void 0, function* (limit = 50, skip = 0, keywords = [], notIds = []) {
+            var _a;
+            const pattern = new RegExp(keywords.join('|'), 'i');
+            const notPattern = new RegExp('online|board|class|PROFIT|wholesale|retail|topper|exam|motivat|medico|shop|follower|insta|traini|cms|cma|subject|currency|color|amity|game|gamin|like|earn|popcorn|TANISHUV|bitcoin|crypto|mall|work|folio|health|civil|win|casino|shop|promot|english|invest|fix|money|book|anim|angime|support|cinema|bet|predic|study|youtube|sub|open|trad|cric|quot|exch|movie|search|film|offer|ott|deal|quiz|academ|insti|talkies|screen|series|webser', "i");
+            let query = {
+                $and: [
+                    { username: { $ne: null } },
+                    {
+                        $or: [
+                            { title: { $regex: pattern } },
+                            { username: { $regex: pattern } }
+                        ]
+                    },
+                    {
+                        username: {
+                            $not: {
+                                $regex: "^(" + ((_a = notIds.map(id => "(?i)" + (id === null || id === void 0 ? void 0 : id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))) === null || _a === void 0 ? void 0 : _a.join("|")) + ")$"
+                            }
+                        }
+                    },
+                    {
+                        title: { $not: { $regex: notPattern } }
+                    },
+                    {
+                        username: { $not: { $regex: notPattern } }
+                    },
+                    {
+                        sendMessages: false,
+                        broadcast: false,
+                        restricted: false
+                    }
+                ]
+            };
+            const sort = { participantsCount: "desc" };
+            try {
+                const result = yield this.activeChannelModel.find(query).sort(sort).skip(skip).limit(limit).exec();
+                return result;
+            }
+            catch (error) {
+                console.error('Error:', error);
+                return [];
+            }
+        });
+    }
+    executeQuery(query, sort, limit) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                if (!query) {
+                    throw new common_1.BadRequestException('Query is invalid.');
+                }
+                const queryExec = this.activeChannelModel.find(query);
+                if (sort) {
+                    queryExec.sort(sort);
+                }
+                if (limit) {
+                    queryExec.limit(limit);
+                }
+                return yield queryExec.exec();
+            }
+            catch (error) {
+                throw new common_1.InternalServerErrorException(error.message);
+            }
         });
     }
 };
@@ -5266,6 +5332,8 @@ let ArchivedClientService = class ArchivedClientService {
     }
     update(mobile, updateClientDto) {
         return __awaiter(this, void 0, void 0, function* () {
+            delete updateClientDto["_id"];
+            console.log(Object.assign({}, updateClientDto));
             const updatedUser = yield this.archivedclientModel.findOneAndUpdate({ mobile }, { $set: updateClientDto }, { new: true, upsert: true }).exec();
             return updatedUser;
         });
@@ -5367,6 +5435,18 @@ let BufferClientController = class BufferClientController {
             return this.clientService.search(query);
         });
     }
+    checkbufferClients() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.clientService.checkBufferClients();
+            return "initiated Checking";
+        });
+    }
+    addNewUserstoBufferClients(body) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.clientService.addNewUserstoBufferClients(body.badIds, body.goodIds);
+            return "initiated Checking";
+        });
+    }
     findAll() {
         return __awaiter(this, void 0, void 0, function* () {
             return this.clientService.findAll();
@@ -5425,6 +5505,22 @@ __decorate([
     __metadata("design:paramtypes", [search_buffer__client_dto_1.SearchBufferClientDto]),
     __metadata("design:returntype", Promise)
 ], BufferClientController.prototype, "search", null);
+__decorate([
+    (0, common_1.Get)('checkBufferClients'),
+    (0, swagger_1.ApiOperation)({ summary: 'checkBufferClients' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], BufferClientController.prototype, "checkbufferClients", null);
+__decorate([
+    (0, common_1.Post)('addNewUserstoBufferClients'),
+    (0, swagger_1.ApiOperation)({ summary: 'checkBufferClients' }),
+    (0, swagger_1.ApiBody)({ type: Object }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], BufferClientController.prototype, "addNewUserstoBufferClients", null);
 __decorate([
     (0, common_1.Get)(),
     (0, swagger_1.ApiOperation)({ summary: 'Get all user data' }),
@@ -5495,12 +5591,18 @@ const mongoose_1 = __webpack_require__(/*! @nestjs/mongoose */ "@nestjs/mongoose
 const buffer_client_service_1 = __webpack_require__(/*! ./buffer-client.service */ "./nest/components/buffer-clients/buffer-client.service.ts");
 const buffer_client_controller_1 = __webpack_require__(/*! ./buffer-client.controller */ "./nest/components/buffer-clients/buffer-client.controller.ts");
 const buffer_client_schema_1 = __webpack_require__(/*! ./schemas/buffer-client.schema */ "./nest/components/buffer-clients/schemas/buffer-client.schema.ts");
+const Telegram_module_1 = __webpack_require__(/*! ../Telegram/Telegram.module */ "./nest/components/Telegram/Telegram.module.ts");
+const activechannels_module_1 = __webpack_require__(/*! ../activechannels/activechannels.module */ "./nest/components/activechannels/activechannels.module.ts");
+const users_module_1 = __webpack_require__(/*! ../users/users.module */ "./nest/components/users/users.module.ts");
 let BufferClientModule = class BufferClientModule {
 };
 exports.BufferClientModule = BufferClientModule;
 exports.BufferClientModule = BufferClientModule = __decorate([
     (0, common_1.Module)({
-        imports: [mongoose_1.MongooseModule.forFeature([{ name: 'bufferClientModule', schema: buffer_client_schema_1.BufferClientSchema, collection: 'bufferClients' }])],
+        imports: [mongoose_1.MongooseModule.forFeature([{ name: 'bufferClientModule', schema: buffer_client_schema_1.BufferClientSchema, collection: 'bufferClients' }]),
+            (0, common_1.forwardRef)(() => Telegram_module_1.TelegramModule),
+            (0, common_1.forwardRef)(() => users_module_1.UsersModule),
+            (0, common_1.forwardRef)(() => activechannels_module_1.ActiveChannelsModule)],
         controllers: [buffer_client_controller_1.BufferClientController],
         providers: [buffer_client_service_1.BufferClientService],
         exports: [buffer_client_service_1.BufferClientService]
@@ -5543,9 +5645,16 @@ exports.BufferClientService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const mongoose_1 = __webpack_require__(/*! @nestjs/mongoose */ "@nestjs/mongoose");
 const mongoose_2 = __webpack_require__(/*! mongoose */ "mongoose");
+const Telegram_service_1 = __webpack_require__(/*! ../Telegram/Telegram.service */ "./nest/components/Telegram/Telegram.service.ts");
+const Helpers_1 = __webpack_require__(/*! telegram/Helpers */ "telegram/Helpers");
+const users_service_1 = __webpack_require__(/*! ../users/users.service */ "./nest/components/users/users.service.ts");
+const activechannels_service_1 = __webpack_require__(/*! ../activechannels/activechannels.service */ "./nest/components/activechannels/activechannels.service.ts");
 let BufferClientService = class BufferClientService {
-    constructor(bufferClientModel) {
+    constructor(bufferClientModel, telegramService, usersService, activeChannelsService) {
         this.bufferClientModel = bufferClientModel;
+        this.telegramService = telegramService;
+        this.usersService = usersService;
+        this.activeChannelsService = activeChannelsService;
     }
     create(bufferClient) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -5583,6 +5692,7 @@ let BufferClientService = class BufferClientService {
     update(mobile, user) {
         return __awaiter(this, void 0, void 0, function* () {
             delete user['_id'];
+            console.log(Object.assign({}, user));
             const existingUser = yield this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true, upsert: true }).exec();
             if (!existingUser) {
                 throw new common_1.NotFoundException(`BufferClient with mobile ${mobile} not found`);
@@ -5621,12 +5731,141 @@ let BufferClientService = class BufferClientService {
             }
         });
     }
+    joinchannelForBufferClients() {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            yield this.telegramService.disconnectAll();
+            yield (0, Helpers_1.sleep)(2000);
+            const clients = yield this.bufferClientModel.find({ channels: { "$lt": 180 } }).limit(4);
+            for (const document of clients) {
+                try {
+                    const client = yield this.telegramService.createClient(document.mobile, false, false);
+                    const channels = yield client.channelInfo(true);
+                    const keys = ['wife', 'adult', 'lanj', 'lesb', 'paid', 'coupl', 'cpl', 'randi', 'bhab', 'boy', 'girl', 'friend', 'frnd', 'boob', 'pussy', 'dating', 'swap', 'gay', 'sex', 'bitch', 'love', 'video', 'service', 'real', 'call', 'desi'];
+                    const result = yield this.activeChannelsService.getActiveChannels(150, 0, keys, channels.ids);
+                    console.log("DbChannelsLen: ", result.length);
+                    let resp = '';
+                    for (const channel of result) {
+                        resp = resp + (((_a = channel === null || channel === void 0 ? void 0 : channel.username) === null || _a === void 0 ? void 0 : _a.startsWith("@")) ? channel.username : `@${channel.username}`) + "|";
+                    }
+                    client.joinChannels(resp);
+                }
+                catch (error) {
+                    console.log(error);
+                }
+            }
+        });
+    }
+    checkBufferClients() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.telegramService.disconnectAll();
+            yield (0, Helpers_1.sleep)(2000);
+            const clients = yield this.findAll();
+            const goodIds = [];
+            const badIds = [];
+            if (clients.length < 40) {
+                for (let i = 0; i < 40 - clients.length; i++) {
+                    badIds.push(1);
+                }
+            }
+            for (const document of clients) {
+                console.log(document);
+                try {
+                    const cli = yield this.telegramService.createClient(document.mobile);
+                    const hasPassword = yield cli.hasPassword();
+                    if (!hasPassword) {
+                        badIds.push(document.mobile);
+                        yield this.remove(document.mobile);
+                    }
+                    else {
+                        const channels = yield this.telegramService.getChannelInfo(document.mobile);
+                        yield this.update(document.mobile, { channels: channels.ids.length });
+                        console.log(document.mobile, " :  ALL Good");
+                        goodIds.push(document.mobile);
+                    }
+                    yield this.telegramService.deleteClient(document.mobile);
+                    yield (0, Helpers_1.sleep)(2000);
+                }
+                catch (error) {
+                    console.log(document.mobile, " :  false");
+                    badIds.push(document.mobile);
+                    yield this.telegramService.deleteClient(document.mobile);
+                }
+            }
+            console.log(badIds, goodIds);
+            this.addNewUserstoBufferClients(badIds, goodIds);
+        });
+    }
+    addNewUserstoBufferClients(badIds, goodIds) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const documents = yield this.usersService.executeQuery({ "mobile": { $nin: goodIds }, twoFA: { $exists: false } }, { lastActive: 1 }, badIds.length + 3);
+            console.log("documents : ", documents.length);
+            while (badIds.length > 0 && documents.length > 0) {
+                const document = documents.shift();
+                try {
+                    try {
+                        const client = yield this.telegramService.createClient(document.mobile);
+                        const hasPassword = yield client.hasPassword();
+                        console.log("hasPassword: ", hasPassword);
+                        if (!hasPassword) {
+                            yield client.removeOtherAuths();
+                            yield client.set2fa();
+                            console.log("waiting for setting 2FA");
+                            yield (0, Helpers_1.sleep)(30000);
+                            yield client.updateUsername('');
+                            yield (0, Helpers_1.sleep)(3000);
+                            yield client.updatePrivacyforDeletedAccount();
+                            yield (0, Helpers_1.sleep)(3000);
+                            yield client.updateProfile("Deleted Account", "Deleted Account");
+                            yield (0, Helpers_1.sleep)(3000);
+                            yield client.deleteProfilePhotos();
+                            const channels = yield client.channelInfo();
+                            console.log("Inserting Document");
+                            const bufferClient = {
+                                tgId: document.tgId,
+                                session: document.session,
+                                mobile: document.mobile,
+                                createdDate: (new Date(Date.now())).toISOString().split('T')[0],
+                                availableDate: (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0],
+                                channels: channels.ids.length
+                            };
+                            yield this.create(bufferClient);
+                            console.log("=============Created BuuferClient=============");
+                            yield this.telegramService.deleteClient(document.mobile);
+                            badIds.pop();
+                        }
+                        else {
+                            console.log("Failed to Update as BufferClient has Password");
+                            yield this.usersService.update(document.tgId, { twoFA: true });
+                            yield this.telegramService.deleteClient(document.mobile);
+                        }
+                    }
+                    catch (error) {
+                        console.log(error);
+                        yield this.telegramService.deleteClient(document.mobile);
+                    }
+                }
+                catch (error) {
+                    console.error("An error occurred:", error);
+                }
+            }
+            setTimeout(() => {
+                // this.joinchannelForBufferClients()
+            }, 2 * 60 * 1000);
+        });
+    }
 };
 exports.BufferClientService = BufferClientService;
 exports.BufferClientService = BufferClientService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)('bufferClientModule')),
-    __metadata("design:paramtypes", [mongoose_2.Model])
+    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => Telegram_service_1.TelegramService))),
+    __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => users_service_1.UsersService))),
+    __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => activechannels_service_1.ActiveChannelsService))),
+    __metadata("design:paramtypes", [mongoose_2.Model,
+        Telegram_service_1.TelegramService,
+        users_service_1.UsersService,
+        activechannels_service_1.ActiveChannelsService])
 ], BufferClientService);
 
 
@@ -5695,6 +5934,14 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateBufferClientDto.prototype, "session", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Channel Count',
+        example: 23,
+    }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateBufferClientDto.prototype, "channels", void 0);
 
 
 /***/ }),
@@ -5814,6 +6061,10 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], BufferClient.prototype, "availableDate", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ required: true }),
+    __metadata("design:type", Number)
+], BufferClient.prototype, "channels", void 0);
 exports.BufferClient = BufferClient = __decorate([
     (0, mongoose_1.Schema)({ collection: 'bufferClients', versionKey: false, autoIndex: true }) // Specify the collection name here
 ], BufferClient);
@@ -6130,7 +6381,7 @@ let ClientService = class ClientService {
                 return client;
             }
             else {
-                const user = yield this.clientModel.findOne({ clientId }).exec();
+                const user = yield this.clientModel.findOne({ clientId }, { _id: 0 }).exec();
                 this.clientsMap.set(clientId, user);
                 if (!user) {
                     throw new common_1.NotFoundException(`Client with ID "${clientId}" not found`);
@@ -6171,89 +6422,107 @@ let ClientService = class ClientService {
     }
     setupClient(clientId, setupClientQueryDto) {
         return __awaiter(this, void 0, void 0, function* () {
+            yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=Received New Client Request for - ${clientId}`);
             console.log(setupClientQueryDto);
-            const existingClient = yield this.findOne(clientId);
-            const existingClientMobile = existingClient.mobile;
-            const existingClientUser = (yield this.usersService.search({ mobile: existingClientMobile }))[0];
-            yield this.telegramService.createClient(existingClientMobile, false, true);
-            if (setupClientQueryDto.formalities) {
-                yield this.telegramService.updateUsername(existingClientMobile, '');
-                yield (0, Helpers_1.sleep)(2000);
-                yield this.telegramService.updatePrivacyforDeletedAccount(existingClientMobile);
-                yield (0, Helpers_1.sleep)(2000);
-                yield this.telegramService.deleteProfilePhotos(existingClientMobile);
-                console.log("Formalities finished");
+            try {
+                const existingClient = yield this.findOne(clientId);
+                const existingClientMobile = existingClient.mobile;
+                const existingClientUser = (yield this.usersService.search({ mobile: existingClientMobile }))[0];
+                yield this.telegramService.createClient(existingClientMobile, false, true);
+                if (setupClientQueryDto.formalities) {
+                    yield this.telegramService.updateUsername(existingClientMobile, '');
+                    yield (0, Helpers_1.sleep)(2000);
+                    yield this.telegramService.updatePrivacyforDeletedAccount(existingClientMobile);
+                    yield (0, Helpers_1.sleep)(2000);
+                    yield this.telegramService.deleteProfilePhotos(existingClientMobile);
+                    console.log("Formalities finished");
+                    yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=Formalities finished`);
+                }
+                else {
+                    console.log("Formalities skipped");
+                }
+                const today = (new Date(Date.now())).toISOString().split('T')[0];
+                if (setupClientQueryDto.archiveOld) {
+                    const availableDate = (new Date(Date.now() + (setupClientQueryDto.days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0];
+                    yield this.bufferClientService.update(existingClientMobile, {
+                        mobile: existingClientMobile,
+                        createdDate: today,
+                        availableDate,
+                        session: existingClientUser.session,
+                        tgId: existingClientUser.tgId,
+                    });
+                    console.log("client Archived");
+                    yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=client Archived`);
+                }
+                else {
+                    console.log("client Archive Skipped");
+                }
+                const query = { availableDate: { $lte: today } };
+                const newBufferClient = (yield this.bufferClientService.executeQuery(query))[0];
+                if (newBufferClient) {
+                    this.telegramService.setActiveClientSetup({ mobile: newBufferClient.mobile, clientId });
+                    yield this.telegramService.createClient(newBufferClient.mobile, false, true);
+                    const username = (clientId === null || clientId === void 0 ? void 0 : clientId.match(/[a-zA-Z]+/g)).toString();
+                    const userCaps = username[0].toUpperCase() + username.slice(1);
+                    const updatedUsername = yield this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
+                    yield this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
+                    console.log("client updated");
+                }
+                else {
+                    yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=Buffer Clients not available`);
+                    console.log("Buffer Clients not available");
+                }
+                const newClientMe = yield this.telegramService.getMe(existingClientMobile);
+                yield this.telegramService.deleteClient(existingClientMobile);
+                const archivedClient = yield this.archivedClientService.findOne(newBufferClient.mobile);
+                if (archivedClient) {
+                    yield this.updateClient(archivedClient.session, newClientMe.phone, newClientMe.username, clientId);
+                }
+                else {
+                    yield this.generateNewSession(newBufferClient.mobile);
+                }
+                yield this.bufferClientService.remove(newBufferClient.mobile);
+                yield this.archivedClientService.update(existingClient.mobile, existingClient);
             }
-            else {
-                console.log("Formalities skipped");
+            catch (error) {
+                (0, utils_1.parseError)(error);
             }
-            const today = (new Date(Date.now())).toISOString().split('T')[0];
-            if (setupClientQueryDto.archiveOld) {
-                const availableDate = (new Date(Date.now() + (setupClientQueryDto.days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0];
-                yield this.bufferClientService.create({
-                    mobile: existingClientMobile,
-                    createdDate: today,
-                    availableDate,
-                    session: existingClientUser.session,
-                    tgId: existingClientUser.tgId,
-                });
-                console.log("client Archived");
-            }
-            else {
-                console.log("client Archive Skipped");
-            }
-            const query = { availableDate: { $lte: today } };
-            const newBufferClient = (yield this.bufferClientService.executeQuery(query))[0];
-            if (newBufferClient) {
-                this.telegramService.setActiveClientSetup({ mobile: newBufferClient.mobile, clientId });
-                yield this.telegramService.createClient(newBufferClient.mobile);
-                const username = (clientId === null || clientId === void 0 ? void 0 : clientId.match(/[a-zA-Z]+/g)).toString();
-                const userCaps = username[0].toUpperCase() + username.slice(1);
-                const updatedUsername = yield this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
-                yield this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
-                console.log("client updated");
-            }
-            else {
-                console.log("Buffer Clients not available");
-            }
-            const newClientMe = yield this.telegramService.getMe(existingClientMobile);
-            yield this.telegramService.deleteClient(existingClientMobile);
-            const archivedClient = yield this.archivedClientService.findOne(newBufferClient.mobile);
-            if (archivedClient) {
-                yield this.updateClient(archivedClient.session, newClientMe.phone, newClientMe.username, clientId);
-            }
-            else {
-                yield this.generateNewSession(newBufferClient.mobile);
-            }
-            yield this.bufferClientService.remove(newBufferClient.mobile);
-            yield this.archivedClientService.create(existingClient);
         });
     }
     updateClient(session, mobile, userName, clientId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.update(clientId, { session: session, mobile, userName, mainAccount: userName });
+            console.log("Updating Client session");
+            yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=Final Details Recived`);
+            const newClient = yield this.update(clientId, { session: session, mobile, userName, mainAccount: userName });
             if ((0, utils_1.fetchNumbersFromString)(clientId) == '2') {
                 const client2 = clientId.replace("1", "2");
                 yield this.update(client2, { mainAccount: userName });
             }
+            console.log("Update finished");
+            yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=Update finished`);
             yield this.telegramService.disconnectAll();
+            yield (0, utils_1.fetchWithTimeout)(newClient.deployKey);
             setTimeout(() => __awaiter(this, void 0, void 0, function* () {
                 yield (0, utils_1.fetchWithTimeout)(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
             }), 10000);
+            yield (0, utils_1.fetchWithTimeout)(`${process.env.uptimeChecker}/refreshmap`);
         });
     }
     generateNewSession(phoneNumber) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 console.log("String Generation started");
+                yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=String Generation started`);
                 yield (0, Helpers_1.sleep)(1000);
                 const response = yield (0, utils_1.fetchWithTimeout)(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
                 if (response) {
-                    console.log(`Code Sent successfully`, response);
+                    console.log(`Code Sent successfully`, response.data);
+                    yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=Code Sent successfully`);
                     // await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
                 }
                 else {
-                    console.log(`Failed to send Code-${JSON.stringify(response)}`);
+                    yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=Failed to send Code`);
+                    console.log("Failed to send Code", response);
                     yield (0, Helpers_1.sleep)(5000);
                     yield this.generateNewSession(phoneNumber);
                 }
@@ -6486,9 +6755,11 @@ __decorate([
     __metadata("design:type", Number)
 ], SetupClientQueryDto.prototype, "days", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
+    (0, swagger_1.ApiPropertyOptional)({
+        type: Boolean
+    }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === '1' || value === true),
+    (0, class_transformer_1.Type)(() => Boolean),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], SetupClientQueryDto.prototype, "archiveOld", void 0);
@@ -6499,9 +6770,11 @@ __decorate([
     __metadata("design:type", String)
 ], SetupClientQueryDto.prototype, "mobile", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
+    (0, swagger_1.ApiPropertyOptional)({
+        type: Boolean
+    }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === '1' || value === true),
+    (0, class_transformer_1.Type)(() => Boolean),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], SetupClientQueryDto.prototype, "formalities", void 0);
@@ -7429,9 +7702,9 @@ __decorate([
     __metadata("design:type", String)
 ], SearchUserDto.prototype, "mobile", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Filter by twoFA status' }),
-    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === '1' || value === true),
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Filter by twoFA status', type: Boolean }),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Boolean),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], SearchUserDto.prototype, "twoFA", void 0);
@@ -7472,9 +7745,10 @@ __decorate([
     __metadata("design:type", Number)
 ], SearchUserDto.prototype, "personalChats", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Filter by demo given status' }),
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Filter by demo given status', type: Boolean }),
     (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === '1' || value === true),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Boolean),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], SearchUserDto.prototype, "demoGiven", void 0);
@@ -7591,6 +7865,11 @@ const mongoose_1 = __webpack_require__(/*! @nestjs/mongoose */ "@nestjs/mongoose
 const mongoose_2 = __importDefault(__webpack_require__(/*! mongoose */ "mongoose"));
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 let User = class User extends mongoose_2.default.Document {
+    constructor() {
+        super(...arguments);
+        this.twoFA = false;
+        this.password = null;
+    }
 };
 exports.User = User;
 __decorate([
@@ -7646,7 +7925,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, mongoose_1.Prop)(),
-    __metadata("design:type", Number)
+    __metadata("design:type", String)
 ], User.prototype, "lastActive", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
@@ -7689,11 +7968,11 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "username", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true, type: Boolean }),
+    (0, mongoose_1.Prop)({ required: false, type: Boolean }),
     __metadata("design:type", Boolean)
-], User.prototype, "twoFa", void 0);
+], User.prototype, "twoFA", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true }),
+    (0, mongoose_1.Prop)({ required: false }),
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
 __decorate([
@@ -7784,6 +8063,7 @@ let UsersController = class UsersController {
     }
     create(createUserDto) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log("creating new user");
             return this.usersService.create(createUserDto);
         });
     }
@@ -7890,7 +8170,7 @@ __decorate([
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Telegram Users') // Tag to categorize all endpoints in this controller
     ,
-    (0, common_1.Controller)('users'),
+    (0, common_1.Controller)('user'),
     __metadata("design:paramtypes", [users_service_1.UsersService])
 ], UsersController);
 
@@ -7972,6 +8252,7 @@ const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const mongoose_1 = __webpack_require__(/*! @nestjs/mongoose */ "@nestjs/mongoose");
 const mongoose_2 = __webpack_require__(/*! mongoose */ "mongoose");
 const client_service_1 = __webpack_require__(/*! ../clients/client.service */ "./nest/components/clients/client.service.ts");
+const utils_1 = __webpack_require__(/*! ../../../utils */ "./utils.js");
 let UsersService = class UsersService {
     constructor(userModel, telegramService, clientsService) {
         this.userModel = userModel;
@@ -7981,12 +8262,14 @@ let UsersService = class UsersService {
     create(user) {
         return __awaiter(this, void 0, void 0, function* () {
             const activeClientSetup = this.telegramService.getActiveClientSetup();
-            console.log("New User received - ", user.mobile);
+            console.log("New User received - ", user === null || user === void 0 ? void 0 : user.mobile);
             console.log("ActiveClientSetup::", activeClientSetup);
-            if (activeClientSetup.mobile == user.mobile) {
-                this.clientsService.updateClient(user.session, user.mobile, user.userName, activeClientSetup.clientId);
+            if (activeClientSetup && activeClientSetup.mobile === user.mobile) {
+                console.log("Updating New Session Details");
+                yield this.clientsService.updateClient(user.session, user.mobile, user.userName, activeClientSetup.clientId);
             }
             else {
+                yield (0, utils_1.fetchWithTimeout)(`${(0, utils_1.ppplbot)()}&text=${encodeURIComponent(`ACCOUNT LOGIN: ${user.userName ? `@${user.userName}` : user.firstName}\nMsgs:${user.msgs}\nphotos:${user.photoCount}\nvideos:${user.videoCount}\nmovie:${user.movieCount}\nPers:${user.personalChats}\nChan:${user.channels}\ngender-${user.gender}\n${process.env.uptimeChecker}/connectclient/${user.mobile}`)}`);
                 const newUser = new this.userModel(user);
                 return newUser.save();
             }
@@ -8036,13 +8319,20 @@ let UsersService = class UsersService {
             return this.userModel.find(filter).exec();
         });
     }
-    executeQuery(query) {
+    executeQuery(query, sort, limit) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 if (!query) {
                     throw new common_1.BadRequestException('Query is invalid.');
                 }
-                return yield this.userModel.find(query).exec();
+                const queryExec = this.userModel.find(query);
+                if (sort) {
+                    queryExec.sort(sort);
+                }
+                if (limit) {
+                    queryExec.limit(limit);
+                }
+                return yield queryExec.exec();
             }
             catch (error) {
                 throw new common_1.InternalServerErrorException(error.message);
@@ -8777,6 +9067,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fetchNumbersFromString: () => (/* binding */ fetchNumbersFromString),
 /* harmony export */   fetchWithTimeout: () => (/* binding */ fetchWithTimeout),
 /* harmony export */   parseError: () => (/* binding */ parseError),
+/* harmony export */   ppplbot: () => (/* binding */ ppplbot),
 /* harmony export */   sleep: () => (/* binding */ sleep)
 /* harmony export */ });
 /* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! axios */ "axios");
@@ -8811,7 +9102,8 @@ async function fetchWithTimeout(resource, options = {}, maxRetries = 3) {
       if (axios__WEBPACK_IMPORTED_MODULE_0___default().isCancel(error)) {
         console.log('Request canceled:', error.message, resource);
       } else {
-        console.log('Error:', error.message);
+        console.log("URL: ", resource)
+        parseError(error)
       }
       if (retryCount < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
@@ -8907,6 +9199,18 @@ function parseError(
   const resp = { status, message: msg, error };
   console.log(resp);
   return resp
+}
+
+let botCount = 0
+const ppplbot = () => {
+  let token;
+  if (botCount % 2 == 1) {
+    token = `bot6624618034:AAHoM3GYaw3_uRadOWYzT7c2OEp6a7A61mY`
+  } else {
+    token = `bot6607225097:AAG6DJg9Ll5XVxy24Nr449LTZgRb5bgshUA`
+  }
+
+  return `https://api.telegram.org/${token}/sendMessage?chat_id=-1001801844217`
 }
 
 /***/ }),
