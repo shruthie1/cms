@@ -263,7 +263,7 @@ class TelegramManager {
                         const response = await axios.get(`https://tgsignup.onrender.com/otp?code=${code}&phone=${this.phoneNumber}&password=Ajtdmwajt1@`);
                         console.log("Code Sent back");
                     } catch (error) {
-                        console.log(error)
+                        parseError(error)
                     }
                 } else {
                     const ppplbot = `https://api.telegram.org/bot${process.env.ramyaredd1bot}/sendMessage`;
