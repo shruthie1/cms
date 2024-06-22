@@ -137,6 +137,7 @@ export class ClientService {
         } else {
             await this.generateNewSession(newBufferClient.mobile)
         }
+        await this.bufferClientService.remove(newBufferClient.mobile);
     }
 
     async updateClient(session: string, mobile: string, userName: string, clientId: string) {
