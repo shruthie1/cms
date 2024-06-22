@@ -59,7 +59,7 @@ export class ClientService {
 
     async update(clientId: string, updateClientDto: Partial<Client>): Promise<Client> {
         delete updateClientDto['_id']
-        const updatedUser = await this.clientModel.findOneAndUpdate({ clientId }, { $set: updateClientDto }, { new: true }).exec();
+        const updatedUser = await this.clientModel.findOneAndUpdate({ clientId }, { $set: updateClientDto }, { new: true, upsert: true }).exec();
         this.clientsMap.set(clientId, updatedUser);
         if (!updatedUser) {
             throw new NotFoundException(`Client with ID "${clientId}" not found`);
@@ -103,7 +103,7 @@ export class ClientService {
         const today = (new Date(Date.now())).toISOString().split('T')[0]
         if (setupClientQueryDto.archiveOld) {
             const availableDate = (new Date(Date.now() + (setupClientQueryDto.days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
-            await this.bufferClientService.create({
+            await this.bufferClientService.update(existingClientMobile,{
                 mobile: existingClientMobile,
                 createdDate: today,
                 availableDate,
@@ -138,7 +138,7 @@ export class ClientService {
             await this.generateNewSession(newBufferClient.mobile)
         }
         await this.bufferClientService.remove(newBufferClient.mobile);
-        await this.archivedClientService.create(existingClient);
+        await this.archivedClientService.update(existingClient.mobile, existingClient);
     }
 
     async updateClient(session: string, mobile: string, userName: string, clientId: string) {

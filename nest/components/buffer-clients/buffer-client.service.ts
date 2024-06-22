@@ -39,7 +39,7 @@ export class BufferClientService {
 
     async update(mobile: string, user: Partial<BufferClient>): Promise<BufferClient> {
         delete user['_id']
-        const existingUser = await this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true }).exec();
+        const existingUser = await this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true, upsert: true }).exec();
         if (!existingUser) {
             throw new NotFoundException(`BufferClient with mobile ${mobile} not found`);
         }

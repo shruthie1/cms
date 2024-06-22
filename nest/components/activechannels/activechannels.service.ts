@@ -30,7 +30,7 @@ export class ActiveChannelsService {
     const updatedChannel = await this.activeChannelModel.findOneAndUpdate(
       { channelId },
       updateActiveChannelDto,
-      { new: true },
+      { new: true, upsert: true },
     ).exec();
     return updatedChannel;
   }

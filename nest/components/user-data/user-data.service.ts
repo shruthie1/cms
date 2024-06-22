@@ -27,7 +27,7 @@ export class UserDataService {
 
     async update(chatId: string, updateUserDataDto: Partial<UserData>): Promise<UserData> {
         delete updateUserDataDto['_id']
-        const updatedUser = await this.userDataModel.findOneAndUpdate({chatId}, { $set: updateUserDataDto }, { new: true }).exec();
+        const updatedUser = await this.userDataModel.findOneAndUpdate({chatId}, { $set: updateUserDataDto }, { new: true, upsert: true }).exec();
         if (!updatedUser) {
             throw new NotFoundException(`UserData with ID "${chatId}" not found`);
         }

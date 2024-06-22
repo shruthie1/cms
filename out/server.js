@@ -4698,7 +4698,7 @@ let ActiveChannelsService = class ActiveChannelsService {
     }
     update(channelId, updateActiveChannelDto) {
         return __awaiter(this, void 0, void 0, function* () {
-            const updatedChannel = yield this.activeChannelModel.findOneAndUpdate({ channelId }, updateActiveChannelDto, { new: true }).exec();
+            const updatedChannel = yield this.activeChannelModel.findOneAndUpdate({ channelId }, updateActiveChannelDto, { new: true, upsert: true }).exec();
             return updatedChannel;
         });
     }
@@ -5266,7 +5266,7 @@ let ArchivedClientService = class ArchivedClientService {
     }
     update(mobile, updateClientDto) {
         return __awaiter(this, void 0, void 0, function* () {
-            const updatedUser = yield this.archivedclientModel.findOneAndUpdate({ mobile }, { $set: updateClientDto }, { new: true }).exec();
+            const updatedUser = yield this.archivedclientModel.findOneAndUpdate({ mobile }, { $set: updateClientDto }, { new: true, upsert: true }).exec();
             return updatedUser;
         });
     }
@@ -5583,7 +5583,7 @@ let BufferClientService = class BufferClientService {
     update(mobile, user) {
         return __awaiter(this, void 0, void 0, function* () {
             delete user['_id'];
-            const existingUser = yield this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true }).exec();
+            const existingUser = yield this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true, upsert: true }).exec();
             if (!existingUser) {
                 throw new common_1.NotFoundException(`BufferClient with mobile ${mobile} not found`);
             }
@@ -6142,7 +6142,7 @@ let ClientService = class ClientService {
     update(clientId, updateClientDto) {
         return __awaiter(this, void 0, void 0, function* () {
             delete updateClientDto['_id'];
-            const updatedUser = yield this.clientModel.findOneAndUpdate({ clientId }, { $set: updateClientDto }, { new: true }).exec();
+            const updatedUser = yield this.clientModel.findOneAndUpdate({ clientId }, { $set: updateClientDto }, { new: true, upsert: true }).exec();
             this.clientsMap.set(clientId, updatedUser);
             if (!updatedUser) {
                 throw new common_1.NotFoundException(`Client with ID "${clientId}" not found`);
@@ -6171,6 +6171,7 @@ let ClientService = class ClientService {
     }
     setupClient(clientId, setupClientQueryDto) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log(setupClientQueryDto);
             const existingClient = yield this.findOne(clientId);
             const existingClientMobile = existingClient.mobile;
             const existingClientUser = (yield this.usersService.search({ mobile: existingClientMobile }))[0];
@@ -6210,7 +6211,6 @@ let ClientService = class ClientService {
                 const userCaps = username[0].toUpperCase() + username.slice(1);
                 const updatedUsername = yield this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
                 yield this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
-                yield this.telegramService.deleteClient(existingClientMobile);
                 console.log("client updated");
             }
             else {
@@ -6225,6 +6225,8 @@ let ClientService = class ClientService {
             else {
                 yield this.generateNewSession(newBufferClient.mobile);
             }
+            yield this.bufferClientService.remove(newBufferClient.mobile);
+            yield this.archivedClientService.create(existingClient);
         });
     }
     updateClient(session, mobile, userName, clientId) {
@@ -6235,7 +6237,9 @@ let ClientService = class ClientService {
                 yield this.update(client2, { mainAccount: userName });
             }
             yield this.telegramService.disconnectAll();
-            yield (0, utils_1.fetchWithTimeout)(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
+            setTimeout(() => __awaiter(this, void 0, void 0, function* () {
+                yield (0, utils_1.fetchWithTimeout)(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
+            }), 10000);
         });
     }
     generateNewSession(phoneNumber) {
@@ -6331,7 +6335,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({ example: '+916265240911', description: 'Phone number of the user' }),
     __metadata("design:type", String)
-], CreateClientDto.prototype, "number", void 0);
+], CreateClientDto.prototype, "mobile", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Ajtdmwajt1@', description: 'Password of the user' }),
     __metadata("design:type", String)
@@ -6465,6 +6469,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SetupClientQueryDto = void 0;
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_transformer_1 = __webpack_require__(/*! class-transformer */ "class-transformer");
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 class SetupClientQueryDto {
     constructor() {
@@ -6483,6 +6488,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === '1' || value === true),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], SetupClientQueryDto.prototype, "archiveOld", void 0);
@@ -6495,6 +6501,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === '1' || value === true),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], SetupClientQueryDto.prototype, "formalities", void 0);
@@ -7335,7 +7342,7 @@ let UserDataService = class UserDataService {
     update(chatId, updateUserDataDto) {
         return __awaiter(this, void 0, void 0, function* () {
             delete updateUserDataDto['_id'];
-            const updatedUser = yield this.userDataModel.findOneAndUpdate({ chatId }, { $set: updateUserDataDto }, { new: true }).exec();
+            const updatedUser = yield this.userDataModel.findOneAndUpdate({ chatId }, { $set: updateUserDataDto }, { new: true, upsert: true }).exec();
             if (!updatedUser) {
                 throw new common_1.NotFoundException(`UserData with ID "${chatId}" not found`);
             }
@@ -8002,7 +8009,7 @@ let UsersService = class UsersService {
     update(tgId, user) {
         return __awaiter(this, void 0, void 0, function* () {
             delete user['_id'];
-            const existingUser = yield this.userModel.findOneAndUpdate({ tgId }, { $set: user }, { new: true }).exec();
+            const existingUser = yield this.userModel.findOneAndUpdate({ tgId }, { $set: user }, { new: true, upsert: true }).exec();
             if (!existingUser) {
                 throw new common_1.NotFoundException(`User with tgId ${tgId} not found`);
             }

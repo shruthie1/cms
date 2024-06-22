@@ -25,7 +25,7 @@ export class ArchivedClientService {
     }
 
     async update(mobile: string, updateClientDto: Partial<Client>): Promise<Client> {
-        const updatedUser = await this.archivedclientModel.findOneAndUpdate({ mobile }, { $set: updateClientDto }, { new: true }).exec();
+        const updatedUser = await this.archivedclientModel.findOneAndUpdate({ mobile }, { $set: updateClientDto }, { new: true, upsert: true }).exec();
         return updatedUser;
     }
 

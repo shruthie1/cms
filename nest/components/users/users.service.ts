@@ -42,7 +42,7 @@ export class UsersService {
 
   async update(tgId: string, user: Partial<User>): Promise<User> {
     delete user['_id']
-    const existingUser = await this.userModel.findOneAndUpdate({ tgId }, { $set: user }, { new: true }).exec();
+    const existingUser = await this.userModel.findOneAndUpdate({ tgId }, { $set: user }, { new: true, upsert: true }).exec();
     if (!existingUser) {
       throw new NotFoundException(`User with tgId ${tgId} not found`);
     }
