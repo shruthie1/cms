@@ -203,7 +203,14 @@ export class TelegramService {
             await sleep(3000)
             await telegramClient.deleteProfilePhotos();
             await telegramClient.disconnect();
-            await this.bufferClientService.create({ ...user as any, availableDate, createdDate: (new Date(Date.now())).toISOString().split('T')[0] })
+            const bufferClient = {
+                tgId: user.tgId,
+                session: user.session,
+                mobile:  user.mobile,
+                createdDate: (new Date(Date.now())).toISOString().split('T')[0],
+                availableDate
+            }
+            await this.bufferClientService.create(bufferClient)
             return "Client set as buffer successfully";
         } catch (error) {
             const errorDetails = parseError(error)
