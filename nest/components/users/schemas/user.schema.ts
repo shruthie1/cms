@@ -81,7 +81,7 @@ export class User extends mongoose.Document {
   username: string | null;
 
   @Prop({ required: false , type: Boolean})
-  twoFa: boolean = false
+  twoFA: boolean = false
 
   @Prop({ required: false })
   password: string = null
