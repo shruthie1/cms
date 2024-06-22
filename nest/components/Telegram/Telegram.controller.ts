@@ -1,21 +1,17 @@
-import { BufferClientService } from './../buffer-clients/buffer-client.service';
-import { Controller, Get, Post, Body, Param, Query, BadRequestException, Inject, forwardRef, HttpException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
-import { UsersService } from '../users/users.service'; // Adjust the import path accordingly
-import TelegramConnectionManager from './TelegramConnectionManager';
-import { parseError, sleep } from '../../../utils';
-import { CloudinaryService } from '../../../cloudinary';
-import { BufferClient } from '../buffer-clients/schemas/buffer-client.schema';
+import { Controller, Get, Post, Body, Param, Query, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import { TelegramService } from './Telegram.service';
 
 @Controller('telegram')
 @ApiTags('Telegram')
 export class TelegramController {
     constructor(
-        @Inject(forwardRef(() => UsersService))
-        private usersService: UsersService,
-        @Inject(forwardRef(() => UsersService))
-        private bufferClientService: BufferClientService
+        private readonly telegramService: TelegramService
     ) { }
+
+    async connectToTelegram(mobile: string) {
+        return await this.telegramService.createClient(mobile);
+    }
 
     @Get('connect/:mobile')
     @ApiOperation({ summary: 'Create and connect a new Telegram client' })
@@ -23,10 +19,7 @@ export class TelegramController {
     //@apiresponse({ status: 201, description: 'Client connected successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async connectClient(@Param('mobile') mobile: string): Promise<string> {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        if (!telegramManager) {
-            throw new BadRequestException('Failed to connect the client');
-        }
+        await this.connectToTelegram(mobile);
         return 'Client connected successfully';
     }
 
@@ -38,8 +31,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: 'Messages fetched successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async getMessages(@Param('mobile') mobile: string, @Query('username') username: string, @Query('limit') limit: number = 8) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        return telegramManager.getMessages(username, limit);
+        await this.connectToTelegram(mobile);
+        return this.telegramService.getMessages(mobile, username, limit);
     }
 
     @Get('chatid/:mobile')
@@ -49,8 +42,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: 'Chat ID fetched successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async getChatId(@Param('mobile') mobile: string, @Query('username') username: string) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        return await telegramManager.getchatId(username);
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.getChatId(mobile, username);
     }
 
     @Post('joinchannels/:mobile')
@@ -60,8 +53,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: 'Channels joined successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async joinChannels(@Param('mobile') mobile: string, @Body('channels') channels: string) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        telegramManager.joinChannels(channels);
+        await this.connectToTelegram(mobile);
+        this.telegramService.joinChannels(mobile, channels);
         return 'Channels joined successfully';
     }
 
@@ -71,8 +64,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: 'Authorizations removed successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async removeOtherAuths(@Param('mobile') mobile: string) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        await telegramManager.removeOtherAuths();
+        await this.connectToTelegram(mobile);
+        await this.telegramService.removeOtherAuths(mobile);
         return 'Authorizations removed successfully';
     }
 
@@ -82,8 +75,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: 'Self messages info fetched successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async getSelfMsgsInfo(@Param('mobile') mobile: string) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        return await telegramManager.getSelfMSgsInfo();
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.getSelfMsgsInfo(mobile);
     }
 
     @Get('channelinfo/:mobile')
@@ -93,8 +86,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: 'Channel info fetched successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async getChannelInfo(@Param('mobile') mobile: string, @Query('sendIds') sendIds: boolean = false) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        return await telegramManager.channelInfo(sendIds);
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.getChannelInfo(mobile, sendIds);
     }
 
     @Get('auths/:mobile')
@@ -103,8 +96,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: 'Authorizations fetched successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async getAuths(@Param('mobile') mobile: string) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        return await telegramManager.getAuths();
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.getAuths(mobile);
     }
 
     @Get('set2Fa/:mobile')
@@ -113,15 +106,8 @@ export class TelegramController {
     //@apiresponse({ status: 200, description: '2Fa set successfully' })
     //@apiresponse({ status: 400, description: 'Bad request' })
     async set2Fa(@Param('mobile') mobile: string) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        try {
-            await telegramManager.set2fa();
-            await telegramManager.disconnect();
-            return '2Fa set successfully'
-        } catch (error) {
-            const errorDetails = parseError(error)
-            throw new HttpException(errorDetails.message, parseInt(errorDetails.status))
-        }
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.set2Fa(mobile);
     }
 
     @Get('setprofilepic/:mobile/:name')
@@ -132,22 +118,8 @@ export class TelegramController {
         @Param('mobile') mobile: string,
         @Param('name') name: string,
     ) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        try {
-            await CloudinaryService.getInstance(name);
-            await sleep(2000);
-            await telegramManager.updateProfilePic('./dp1.jpg');
-            await sleep(1000);
-            await telegramManager.updateProfilePic('./dp2.jpg');
-            await sleep(1000);
-            await telegramManager.updateProfilePic('./dp3.jpg');
-            await sleep(1000);
-            await telegramManager.disconnect();
-            return '2Fa set successfully'
-        } catch (error) {
-            const errorDetails = parseError(error)
-            throw new HttpException(errorDetails.message, parseInt(errorDetails.status))
-        }
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.setProfilePic(mobile, name)
     }
 
     @Get('SetAsBufferClient/:mobile')
@@ -156,27 +128,8 @@ export class TelegramController {
     async setAsBufferClient(
         @Param('mobile') mobile: string,
     ) {
-        const user = (await this.usersService.search({mobile}))[0];
-        if (!user) {
-            throw new BadRequestException('user not found');
-        }
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        try {
-            await telegramManager.set2fa();
-            await sleep(10000)
-            await telegramManager.updateUsername('');
-            await sleep(2000)
-            await telegramManager.updateProfile("Deleted Account", "Account Banned");
-            await sleep(2000)
-            await telegramManager.updatePrivacyforDeletedAccount();
-            await sleep(2000)
-            await telegramManager.deleteProfilePhotos();
-            await this.bufferClientService.create(user as BufferClient)
-            return "Client set as buffer successfully";
-        } catch (error) {
-            const errorDetails = parseError(error)
-            throw new HttpException(errorDetails.message, parseInt(errorDetails.status))
-        }
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.setAsBufferClient(mobile);
     }
 
     @Get('updatePrivacy/:mobile')
@@ -185,14 +138,8 @@ export class TelegramController {
     async updatePrivacy(
         @Param('mobile') mobile: string,
     ) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        try {
-            await telegramManager.updatePrivacy()
-            return "Privacy updated successfully";
-        } catch (error) {
-            const errorDetails = parseError(error)
-            throw new HttpException(errorDetails.message, parseInt(errorDetails.status))
-        }
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.updatePrivacy(mobile)
     }
 
     @Get('UpdateUsername/:mobile')
@@ -203,17 +150,11 @@ export class TelegramController {
         @Param('mobile') mobile: string,
         @Query('username') username: string,
     ) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        try {
-            await telegramManager.updateUsername(username)
-            return "Username updated successfully";
-        } catch (error) {
-            console.log("Some Error: ", parseError(error), error);
-            throw new Error("Failed to update username");
-        }
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.updateUsername(mobile, username)
     }
 
-    @Get('UpdateName/:mobile')
+    @Get('updateNameandBio/:mobile')
     @ApiOperation({ summary: 'Update Name' })
     @ApiParam({ name: 'mobile', description: 'User mobile number', type: String })
     @ApiQuery({ name: 'firstName', description: 'First Name', type: String })
@@ -223,14 +164,8 @@ export class TelegramController {
         @Query('firstName') firstName: string,
         @Query('about') about: string,
     ) {
-        const telegramManager = await TelegramConnectionManager.getInstance(this.usersService).createClient(mobile)
-        try {
-            await telegramManager.updateProfile(firstName, about)
-            return "Username updated successfully";
-        } catch (error) {
-            console.log("Some Error: ", parseError(error), error);
-            throw new Error("Failed to update username");
-        }
+        await this.connectToTelegram(mobile);
+        return await this.telegramService.updateNameandBio(mobile, firstName, about)
     }
 
 }

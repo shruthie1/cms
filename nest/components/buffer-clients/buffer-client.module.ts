@@ -8,5 +8,6 @@ import { BufferClientSchema } from './schemas/buffer-client.schema';
   imports: [MongooseModule.forFeature([{ name: 'bufferClientModule', schema: BufferClientSchema, collection: 'bufferClients' }])],
   controllers: [BufferClientController],
   providers: [BufferClientService],
+  exports: [BufferClientService]
 })
-export class BufferClientModule {}
+export class BufferClientModule { }

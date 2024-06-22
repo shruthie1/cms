@@ -28,7 +28,10 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import mongoose from 'mongoose';
 
 
-
+var cors = require('cors');
+const app = express();
+const port = process.env.PORT || 4000;
+const userMap = new Map();
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
@@ -36,12 +39,6 @@ process.on('exit', async () => {
   await ChannelService.getInstance().closeConnection();
   await disconnectAll();
 });
-
-var cors = require('cors');
-const app = express();
-const port = process.env.PORT || 4000;
-const userMap = new Map();
-
 let ip;
 let clients;
 let upiIds;
@@ -1350,6 +1347,7 @@ app.get('/requestcall', async (req, res, next) => {
   }
 });
 const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(app));
+
 const config = new DocumentBuilder()
   .setTitle('NestJS and Express API')
   .setDescription('API documentation')
@@ -1604,7 +1602,7 @@ async function checkArchivedClients() {
     if (!cli) {
       console.log(document.mobile, " :  false");
       badIds.push(document.mobile);
-      await db.removeOneAchivedClient({number: document.number})
+      await db.removeOneAchivedClient({ number: document.number })
     }
   }
 }
@@ -1827,7 +1825,7 @@ async function setNewClient(user, activeClientSetup) {
       }
     }
     const updatedClient = await db.updateUserConfig({ clientId: activeClientSetup.clientId }, { session: user.session, number: user.number ? user.number : `+${user.mobile}`, userName: user.userName?.replace("@", ''), mainAccount: mainAccount });
-    console.log("Updated the Client Successfully",activeClientSetup.phoneNumber, updatedClient);
+    console.log("Updated the Client Successfully", activeClientSetup.phoneNumber, updatedClient);
     await db.deleteBufferClient({ mobile: activeClientSetup.phoneNumber });
     await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
     await fetchWithTimeout(`${ppplbot()}&text=Update Done - ${user.clientId}-${user.userName}-${user.number}-${user.name}`);
