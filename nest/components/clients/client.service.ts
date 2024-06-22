@@ -1,13 +1,28 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { TelegramService } from './../Telegram/Telegram.service';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Client, ClientDocument } from './schemas/client.schema';
 import { CreateClientDto } from './dto/create-client.dto';
+import { SetupClientQueryDto } from './dto/setup-client.dto';
+import { BufferClientService } from '../buffer-clients/buffer-client.service';
+import { sleep } from 'telegram/Helpers';
+import { UsersService } from '../users/users.service';
+import { ArchivedClientService } from '../archived-clients/archibved-client.service';
+import { fetchNumbersFromString, fetchWithTimeout } from '../../../utils';
 
 @Injectable()
 export class ClientService {
     private clientsMap: Map<string, Client> = new Map();
-    constructor(@InjectModel(Client.name) private clientModel: Model<ClientDocument>) { }
+    constructor(@InjectModel(Client.name) private clientModel: Model<ClientDocument>,
+        @Inject(forwardRef(() => TelegramService))
+        private telegramService: TelegramService,
+        private bufferClientService: BufferClientService,
+        @Inject(forwardRef(() => UsersService))
+        private usersService: UsersService,
+        @Inject(forwardRef(() => ArchivedClientService))
+        private archivedClientService: ArchivedClientService,
+    ) { }
 
     async create(createClientDto: CreateClientDto): Promise<Client> {
         const createdUser = new this.clientModel(createClientDto);
@@ -15,8 +30,10 @@ export class ClientService {
     }
 
     async findAll(): Promise<Client[]> {
-        if (this.clientsMap.size < 3) {
-            const results: Client[] = await this.clientModel.find().exec();
+        const clientMapLength = this.clientsMap.size
+        console.log(clientMapLength)
+        if (clientMapLength < 3) {
+            const results: Client[] = await this.clientModel.find({}).exec();
             for (const client of results) {
                 this.clientsMap.set(client.clientId, client)
             }
@@ -40,6 +57,17 @@ export class ClientService {
         }
     }
 
+    async updatedocs() {
+        console.log("here")
+        const clients = await this.findAll();
+        console.log(clients.length)
+        for (const client of clients) {
+            const data: any = { ...client }
+            // console.log(data)
+            // console.log(data.number);
+            await this.clientModel.findByIdAndUpdate(client._id, { mobile: data._doc.number.replace('+', '') })
+        }
+    }
     async update(clientId: string, updateClientDto: Partial<Client>): Promise<Client> {
         delete updateClientDto['_id']
         const updatedUser = await this.clientModel.findOneAndUpdate({ clientId }, { $set: updateClientDto }, { new: true }).exec();
@@ -65,6 +93,76 @@ export class ClientService {
         }
         console.log(filter)
         return this.clientModel.find(filter).exec();
+    }
+
+    async setupClient(clientId: string, setupClientQueryDto: SetupClientQueryDto) {
+        const existingClient = await this.findOne(clientId);
+        const existingClientMobile = existingClient.mobile
+        const existingClientUser = (await this.usersService.search({ mobile: existingClientMobile }))[0];
+        await this.telegramService.createClient(existingClientMobile, false, true)
+        if (setupClientQueryDto.formalities) {
+            await this.telegramService.updateUsername(existingClientMobile, '');
+            await sleep(2000)
+            await this.telegramService.updatePrivacyforDeletedAccount(existingClientMobile)
+            await sleep(2000)
+            await this.telegramService.deleteProfilePhotos(existingClientMobile)
+        }
+
+        const today = (new Date(Date.now())).toISOString().split('T')[0]
+        if (setupClientQueryDto.archiveOld) {
+            const availableDate = (new Date(Date.now() + (setupClientQueryDto.days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
+            await this.bufferClientService.create({
+                mobile: existingClientMobile,
+                createdDate: today,
+                availableDate,
+                session: existingClientUser.session,
+                tgId: existingClientUser.tgId
+            })
+        }
+
+        const query = { date: { $lte: today } }
+        const newBufferClient = (await this.bufferClientService.executeQuery(query))[0];
+        if (newBufferClient) {
+            this.telegramService.setActiveClientSetup({ mobile: newBufferClient.mobile, clientId })
+            await this.telegramService.createClient(newBufferClient.mobile);
+            const username = (clientId?.match(/[a-zA-Z]+/g)).toString();
+            const userCaps = username[0].toUpperCase() + username.slice(1);
+            const updatedUsername = await this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
+            await this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
+        }
+        const newClientMe = await this.telegramService.getMe(existingClientMobile)
+        const archivedClient = await this.archivedClientService.findOne(newBufferClient.mobile)
+        if (archivedClient) {
+            await this.updateClient(archivedClient.session, newClientMe.phone, newClientMe.username, clientId)
+        } else {
+            await this.generateNewSession(newBufferClient.mobile)
+        }
+    }
+
+    async updateClient(session: string, mobile: string, userName: string, clientId: string) {
+        await this.update(clientId, { session: session, mobile, userName, mainAccount: userName });
+        if (fetchNumbersFromString(clientId) == '2') {
+            const client2 = clientId.replace("1", "2")
+            await this.update(client2, { mainAccount: userName });
+        }
+    }
+
+    async generateNewSession(phoneNumber) {
+        try {
+            console.log("String Generation started");
+            await sleep(1000);
+            const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
+            if (response) {
+                console.log(`Code Sent successfully`, response);
+                // await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
+            } else {
+                console.log(`Failed to send Code-${JSON.stringify(response)}`);
+                await sleep(5000);
+                await this.generateNewSession(phoneNumber);
+            }
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     async executeQuery(query: any): Promise<any> {

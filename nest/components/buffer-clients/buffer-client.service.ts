@@ -49,7 +49,7 @@ export class BufferClientService {
         return this.bufferClientModel.find(filter).exec();
     }
 
-    async executeQuery(query: any): Promise<any> {
+    async executeQuery(query: any): Promise<BufferClient[]> {
         try {
             if (!query) {
                 throw new BadRequestException('Query is invalid.');

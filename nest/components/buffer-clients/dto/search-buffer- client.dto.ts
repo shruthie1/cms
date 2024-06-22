@@ -19,12 +19,20 @@ export class SearchBufferClientDto {
   readonly mobile?: string;
 
   @ApiPropertyOptional({
-    description: 'Date of the session',
+    description: 'createdDate of the bufferClient',
     example: '2023-06-22',
   })
   @IsOptional()
   @IsString()
-  readonly date?: string;
+  readonly createdDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'availableDate of the bufferClient',
+    example: '2023-06-22',
+  })
+  @IsOptional()
+  @IsString()
+  readonly availableDate?: string;
 
   @ApiPropertyOptional({
     description: 'Session identifier',
@@ -33,20 +41,4 @@ export class SearchBufferClientDto {
   @IsOptional()
   @IsString()
   readonly session?: string;
-
-  @ApiPropertyOptional({
-    description: 'Two Factor Authentication enabled or not',
-    example: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  readonly twoFa?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Password for the client',
-    example: 'password123',
-  })
-  @IsOptional()
-  @IsString()
-  readonly password?: string;
 }

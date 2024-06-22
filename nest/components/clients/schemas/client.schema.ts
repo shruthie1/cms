@@ -5,7 +5,7 @@ import { Document } from 'mongoose';
 export type ClientDocument = Client & Document;
 
 @Schema({ collection: 'clients', versionKey: false, autoIndex: true })
-export class Client {
+export class Client extends Document{
     @ApiProperty({ example: 'paid_giirl_shruthiee', description: 'Channel link of the user' })
     @Prop({ required: true })
     channelLink: string;
@@ -22,9 +22,9 @@ export class Client {
     @Prop({ required: true })
     name: string;
   
-    @ApiProperty({ example: '+916265240911', description: 'Phone number of the user' })
+    @ApiProperty({ example: '916265240911', description: 'mobile number of the user' })
     @Prop({ required: true })
-    number: string;
+    mobile: string;
   
     @ApiProperty({ example: 'Ajtdmwajt1@', description: 'Password of the user' })
     @Prop({ required: true })

@@ -7,6 +7,7 @@ import { TelegramModule } from './components/Telegram/Telegram.module';
 import { BufferClientModule } from './components/buffer-clients/buffer-client.module';
 import { ActiveChannelsModule } from './components/activechannels/activechannels.module';
 import { ConfigurationModule } from './components/confguration/configuration.module';
+import { ArchivedClientModule } from './components/archived-clients/archived-client.module';
 
 @Module({
   imports: [
@@ -15,13 +16,14 @@ import { ConfigurationModule } from './components/confguration/configuration.mod
         uri: process.env.mongouri,
       }),
     }),
+    TelegramModule,
     ConfigurationModule,
     ActiveChannelsModule,
     ClientModule,
     UserDataModule,
     UsersModule,
-    TelegramModule,
     BufferClientModule,
+    ArchivedClientModule
   ],
 })
 export class AppModule { }

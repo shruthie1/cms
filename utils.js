@@ -40,6 +40,17 @@ export async function fetchWithTimeout(resource, options = {}, maxRetries = 3) {
   }
 }
 
+export function fetchNumbersFromString(inputString) {
+  const regex = /\d+/g;
+  const matches = inputString.match(regex);
+  if (matches) {
+    const result = matches.join('');
+    return result;
+  } else {
+    return '';
+  }
+}
+
 export function parseError(
   err,
   prefix = 'TgCms',

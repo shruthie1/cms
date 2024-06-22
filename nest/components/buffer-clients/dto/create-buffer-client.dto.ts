@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import {  IsString } from 'class-validator';
 
 export class CreateBufferClientDto {
   @ApiProperty({
@@ -21,7 +21,14 @@ export class CreateBufferClientDto {
     example: '2023-06-22',
   })
   @IsString()
-  readonly date: string;
+  readonly createdDate: string;
+
+  @ApiProperty({
+    description: 'Date of the session',
+    example: '2023-06-22',
+  })
+  @IsString()
+  readonly availableDate: string;
 
   @ApiProperty({
     description: 'Session identifier',
@@ -29,21 +36,4 @@ export class CreateBufferClientDto {
   })
   @IsString()
   readonly session: string;
-
-  @ApiProperty({
-    description: 'Two Factor Authentication enabled or not',
-    example: true,
-    default : false
-  })
-  @IsBoolean()
-  readonly twoFa: boolean = false;
-
-  @ApiPropertyOptional({
-    description: 'Password for the client',
-    example: 'password123',
-    default: null
-  })
-  @IsOptional()
-  @IsString()
-  readonly password: string = null
 }

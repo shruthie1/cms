@@ -1,4 +1,5 @@
 import Imap from 'imap';
+import { fetchNumbersFromString } from './utils';
 console.log("Started Mail Reader")
 let isReady = false;
 
@@ -92,16 +93,6 @@ export async function getcode() {
     return result
 }
 
-function fetchNumbersFromString(inputString) {
-    const regex = /\d+/g;
-    const matches = inputString.match(regex);
-    if (matches) {
-        const result = matches.join('');
-        return result;
-    } else {
-        return '';
-    }
-}
 export function connectToMail() {
     result = '';
     imap.connect();

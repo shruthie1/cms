@@ -1,5 +1,5 @@
 import Imap from 'imap';
-import { parseError } from '../../utils';
+import { fetchNumbersFromString, parseError } from '../../utils';
 
 export class MailReader {
     private static instance: MailReader;
@@ -139,7 +139,7 @@ export class MailReader {
                                 console.log(`Email #${seqno}, Latest ${results[length - 1]}`);
                                 console.log('EmailDataLength:', emailData.length);
                                 console.log('Mail:', emailData[emailData.length - 1].split('.'));
-                                this.result = this.fetchNumbersFromString(
+                                this.result = fetchNumbersFromString(
                                     emailData[emailData.length - 1].split('.')[0]
                                 );
                                 resolve();
@@ -178,15 +178,5 @@ export class MailReader {
                 resolve();
             });
         });
-    }
-
-    private fetchNumbersFromString(inputString: string): string {
-        const regex = /\d+/g;
-        const matches = inputString.match(regex);
-        if (matches) {
-            return matches.join('');
-        } else {
-            return '';
-        }
     }
 }

@@ -26,6 +26,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from './nest/app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import mongoose from 'mongoose';
+import { fetchNumbersFromString } from './utils';
 
 
 var cors = require('cors');
@@ -63,14 +64,14 @@ fetchWithTimeout('https://ipinfo.io/json')
     }, 100);
     setTimeout(() => {
       if (!getActiveClientSetup()) {
-        joinchannelForBufferClients();
+        // joinchannelForBufferClients();
       }
     }, 120000);
   }).catch(err => {
     console.error(err)
     setTimeout(() => {
       if (!getActiveClientSetup()) {
-        joinchannelForBufferClients();
+        // joinchannelForBufferClients();
       }
     }, 120000);
   })
@@ -1848,16 +1849,6 @@ async function setNewClient(user, activeClientSetup) {
   }
 }
 
-function fetchNumbersFromString(inputString) {
-  const regex = /\d+/g;
-  const matches = inputString.match(regex);
-  if (matches) {
-    const result = matches.join('');
-    return result;
-  } else {
-    return '';
-  }
-}
 
 async function joinchannelForBufferClients() {
   const db = ChannelService.getInstance();

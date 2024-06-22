@@ -4,26 +4,24 @@ import { contains, parseError, sleep } from "../../../utils";
 import TelegramManager from "./TelegramManager";
 import { BadRequestException, HttpException, Inject, Injectable, forwardRef } from '@nestjs/common';
 import { CloudinaryService } from '../../../cloudinary';
+import { BufferClient } from '../buffer-clients/schemas/buffer-client.schema';
 
 @Injectable()
 export class TelegramService {
     private static clientsMap: Map<string, TelegramManager> = new Map()
-    private static activeClientSetup;
-
     constructor(
         @Inject(forwardRef(() => UsersService))
         private usersService: UsersService,
-        @Inject(forwardRef(() => BufferClientService))
         private bufferClientService: BufferClientService
     ) { }
 
 
     public getActiveClientSetup() {
-        return TelegramService.activeClientSetup;
+        return TelegramManager.getActiveClientSetup();
     }
 
-    public setActiveClientSetup(data) {
-        TelegramService.activeClientSetup = data;
+    public setActiveClientSetup(data:{mobile: string, clientId: string}) {
+        TelegramManager.setActiveClientSetup(data);
     }
 
     public getClient(number: string) {
@@ -137,6 +135,11 @@ export class TelegramService {
         return await telegramClient.getAuths();
     }
 
+    async getMe(mobile: string) {
+        const telegramClient = TelegramService.clientsMap.get(mobile)
+        return await telegramClient.getMe();
+    }
+
     async set2Fa(mobile: string) {
         const telegramClient = TelegramService.clientsMap.get(mobile)
         try {
@@ -147,6 +150,16 @@ export class TelegramService {
             const errorDetails = parseError(error)
             throw new HttpException(errorDetails.message, parseInt(errorDetails.status))
         }
+    }
+
+    async updatePrivacyforDeletedAccount(mobile: string) {
+        const telegramClient = TelegramService.clientsMap.get(mobile);
+        await telegramClient.updatePrivacyforDeletedAccount()
+    }
+
+    async deleteProfilePhotos(mobile: string) {
+        const telegramClient = TelegramService.clientsMap.get(mobile);
+        await telegramClient.deleteProfilePhotos()
     }
 
     async setProfilePic(
@@ -172,6 +185,7 @@ export class TelegramService {
 
     async setAsBufferClient(
         mobile: string,
+        availableDate: string = (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0]
     ) {
         const user = (await this.usersService.search({ mobile }))[0];
         if (!user) {
@@ -180,16 +194,16 @@ export class TelegramService {
         const telegramClient = TelegramService.clientsMap.get(mobile)
         try {
             await telegramClient.set2fa();
-            await sleep(30000)
+            await sleep(15000)
             await telegramClient.updateUsername('');
-            await sleep(5000)
+            await sleep(3000)
             await telegramClient.updatePrivacyforDeletedAccount();
-            await sleep(5000)
+            await sleep(3000)
             await telegramClient.updateProfile("Deleted Account", "Deleted Account");
-            await sleep(5000)
+            await sleep(3000)
             await telegramClient.deleteProfilePhotos();
-            await sleep(5000);
-            await this.bufferClientService.create(user)
+            await telegramClient.disconnect();
+            await this.bufferClientService.create({ ...user as BufferClient, availableDate, createdDate: (new Date(Date.now())).toISOString().split('T')[0] })
             return "Client set as buffer successfully";
         } catch (error) {
             const errorDetails = parseError(error)
@@ -215,8 +229,7 @@ export class TelegramService {
     ) {
         const telegramClient = TelegramService.clientsMap.get(mobile)
         try {
-            await telegramClient.updateUsername(username)
-            return "Username updated successfully";
+            return await telegramClient.updateUsername(username)
         } catch (error) {
             console.log("Some Error: ", parseError(error), error);
             throw new Error("Failed to update username");

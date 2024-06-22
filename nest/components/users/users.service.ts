@@ -1,16 +1,29 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { TelegramService } from './../Telegram/Telegram.service';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { SearchUserDto } from './dto/search-user.dto';
+import { ClientService } from '../clients/client.service';
+import { Api } from 'telegram';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel('userModule') private userModel: Model<User>) { }
+  constructor(@InjectModel('userModule') private userModel: Model<User>,
+    @Inject(forwardRef(() => TelegramService))
+    private telegramService: TelegramService,
+    @Inject(forwardRef(() => ClientService))
+    private clientsService: ClientService
+  ) { }
 
   async create(user: User): Promise<User> {
-    const newUser = new this.userModel(user);
-    return newUser.save();
+    const activeClientSetup = this.telegramService.getActiveClientSetup()
+    if (activeClientSetup.mobile == user.mobile) {
+      this.clientsService.updateClient(user.session, user.mobile, user.userName, activeClientSetup.clientId)
+    } else {
+      const newUser = new this.userModel(user);
+      return newUser.save();
+    }
   }
 
   async findAll(): Promise<User[]> {
@@ -42,7 +55,7 @@ export class UsersService {
   }
   async search(filter: SearchUserDto): Promise<User[]> {
     if (filter.firstName) {
-      filter.firstName = { $regex: new RegExp(filter.firstName,'i') } as any
+      filter.firstName = { $regex: new RegExp(filter.firstName, 'i') } as any
     }
     if (filter.twoFA !== undefined) {
       filter.twoFA = filter.twoFA as any === 'true' || filter.twoFA as any === '1' || filter.twoFA === true;
