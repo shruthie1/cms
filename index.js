@@ -27,6 +27,7 @@ import { AppModule } from './nest/app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import mongoose from 'mongoose';
 import { fetchNumbersFromString } from './utils';
+import path from 'path'
 
 
 var cors = require('cors');
