@@ -5805,10 +5805,6 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
-], BufferClient.prototype, "date", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: true }),
-    __metadata("design:type", String)
 ], BufferClient.prototype, "session", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ required: true }),

@@ -8,10 +8,7 @@ export class BufferClient extends Document {
 
   @Prop({ required: true, unique: true })
   mobile: string;
-
-  @Prop({ required: true })
-  date: string;
-
+  
   @Prop({ required: true })
   session: string;
 
