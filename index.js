@@ -17,7 +17,7 @@ import {
   getActiveClientSetup
 } from './telegramManager';
 import bodyParser from 'body-parser';
-import { sleep, fetchWithTimeout } from './utils';
+import { sleep, fetchWithTimeout , ppplbot, fetchNumbersFromString} from './utils';
 import { execSync } from 'child_process';
 import { CloudinaryService } from './cloudinary';
 import fs from 'fs';
@@ -26,7 +26,6 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from './nest/app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import mongoose from 'mongoose';
-import { fetchNumbersFromString } from './utils';
 import path from 'path'
 
 
@@ -81,16 +80,7 @@ fetchWithTimeout('https://ipinfo.io/json')
 
 let count = 0;
 let botCount = 0
-const ppplbot = () => {
-  let token;
-  if (botCount % 2 == 1) {
-    token = `bot6624618034:AAHoM3GYaw3_uRadOWYzT7c2OEp6a7A61mY`
-  } else {
-    token = `bot6607225097:AAG6DJg9Ll5XVxy24Nr449LTZgRb5bgshUA`
-  }
 
-  return `https://api.telegram.org/${token}/sendMessage?chat_id=-1001801844217`
-}
 const pingerbot = `https://api.telegram.org/bot5807856562:${process.env.apikey}/sendMessage?chat_id=-1001703065531`;
 
 const apiResp = {

@@ -126,3 +126,14 @@ export function parseError(
   console.log(resp);
   return resp
 }
+
+export const ppplbot = () => {
+  let token;
+  if (botCount % 2 == 1) {
+    token = `bot6624618034:AAHoM3GYaw3_uRadOWYzT7c2OEp6a7A61mY`
+  } else {
+    token = `bot6607225097:AAG6DJg9Ll5XVxy24Nr449LTZgRb5bgshUA`
+  }
+
+  return `https://api.telegram.org/${token}/sendMessage?chat_id=-1001801844217`
+}

@@ -9,7 +9,7 @@ import { BufferClientService } from '../buffer-clients/buffer-client.service';
 import { sleep } from 'telegram/Helpers';
 import { UsersService } from '../users/users.service';
 import { ArchivedClientService } from '../archived-clients/archived-client.service';
-import { fetchNumbersFromString, fetchWithTimeout, parseError } from '../../../utils';
+import { fetchNumbersFromString, fetchWithTimeout, parseError, ppplbot } from '../../../utils';
 
 @Injectable()
 export class ClientService {
@@ -85,6 +85,7 @@ export class ClientService {
     }
 
     async setupClient(clientId: string, setupClientQueryDto: SetupClientQueryDto) {
+        await fetchWithTimeout(`${ppplbot()}&text=Received New Client Request for - ${clientId}`);
         console.log(setupClientQueryDto);
         try {
             const existingClient = await this.findOne(clientId);
@@ -98,6 +99,7 @@ export class ClientService {
                 await sleep(2000)
                 await this.telegramService.deleteProfilePhotos(existingClientMobile)
                 console.log("Formalities finished")
+                await fetchWithTimeout(`${ppplbot()}&text=Formalities finished`);
             } else {
                 console.log("Formalities skipped")
             }
@@ -112,6 +114,7 @@ export class ClientService {
                     tgId: existingClientUser.tgId,
                 })
                 console.log("client Archived")
+                await fetchWithTimeout(`${ppplbot()}&text=client Archived`);
             } else {
                 console.log("client Archive Skipped")
             }
@@ -127,6 +130,7 @@ export class ClientService {
                 await this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
                 console.log("client updated");
             } else {
+                await fetchWithTimeout(`${ppplbot()}&text=Buffer Clients not available`);
                 console.log("Buffer Clients not available")
             }
 
@@ -146,29 +150,35 @@ export class ClientService {
     }
 
     async updateClient(session: string, mobile: string, userName: string, clientId: string) {
-        console.log("Updating Client session")
+        console.log("Updating Client session");
+        await fetchWithTimeout(`${ppplbot()}&text=Final Details Recived`);
         const newClient = await this.update(clientId, { session: session, mobile, userName, mainAccount: userName });
         if (fetchNumbersFromString(clientId) == '2') {
             const client2 = clientId.replace("1", "2")
             await this.update(client2, { mainAccount: userName });
         }
-        console.log("Update finished")
+        console.log("Update finished");
+        await fetchWithTimeout(`${ppplbot()}&text=Update finished`);
         await this.telegramService.disconnectAll();
         await fetchWithTimeout(newClient.deployKey);
         setTimeout(async () => {
             await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
         }, 10000);
+        await fetchWithTimeout(`${process.env.uptimeChecker}/refreshmap`);
     }
 
     async generateNewSession(phoneNumber) {
         try {
             console.log("String Generation started");
+            await fetchWithTimeout(`${ppplbot()}&text=String Generation started`);
             await sleep(1000);
             const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
             if (response) {
                 console.log(`Code Sent successfully`, response.data);
+                await fetchWithTimeout(`${ppplbot()}&text=Code Sent successfully`);
                 // await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
             } else {
+                await fetchWithTimeout(`${ppplbot()}&text=Failed to send Code`);
                 console.log("Failed to send Code", response);
                 await sleep(5000);
                 await this.generateNewSession(phoneNumber);
