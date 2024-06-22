@@ -123,7 +123,6 @@ export class ClientService {
             const userCaps = username[0].toUpperCase() + username.slice(1);
             const updatedUsername = await this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
             await this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
-            await this.telegramService.deleteClient(existingClientMobile)
             console.log("client updated");
         } else {
             console.log("Buffer Clients not available")
