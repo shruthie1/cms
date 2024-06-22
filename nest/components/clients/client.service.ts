@@ -57,17 +57,6 @@ export class ClientService {
         }
     }
 
-    async updatedocs() {
-        console.log("here")
-        const clients = await this.findAll();
-        console.log(clients.length)
-        for (const client of clients) {
-            const data: any = { ...client }
-            // console.log(data)
-            // console.log(data.number);
-            await this.clientModel.findByIdAndUpdate(client._id, { mobile: data._doc.number.replace('+', '') })
-        }
-    }
     async update(clientId: string, updateClientDto: Partial<Client>): Promise<Client> {
         delete updateClientDto['_id']
         const updatedUser = await this.clientModel.findOneAndUpdate({ clientId }, { $set: updateClientDto }, { new: true }).exec();
@@ -107,7 +96,7 @@ export class ClientService {
             await sleep(2000)
             await this.telegramService.deleteProfilePhotos(existingClientMobile)
             console.log("Formalities finished")
-        }else{
+        } else {
             console.log("Formalities skipped")
         }
         const today = (new Date(Date.now())).toISOString().split('T')[0]
@@ -118,14 +107,14 @@ export class ClientService {
                 createdDate: today,
                 availableDate,
                 session: existingClientUser.session,
-                tgId: existingClientUser.tgId
+                tgId: existingClientUser.tgId,
             })
             console.log("client Archived")
-        }else{
-            console.log("client Archive Skipped")   
+        } else {
+            console.log("client Archive Skipped")
         }
 
-        const query = { date: { $lte: today } }
+        const query = { availableDate: { $lte: today } }
         const newBufferClient = (await this.bufferClientService.executeQuery(query))[0];
         if (newBufferClient) {
             this.telegramService.setActiveClientSetup({ mobile: newBufferClient.mobile, clientId })
@@ -136,7 +125,7 @@ export class ClientService {
             await this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
             await this.telegramService.deleteClient(existingClientMobile)
             console.log("client updated");
-        }else{
+        } else {
             console.log("Buffer Clients not available")
         }
 

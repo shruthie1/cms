@@ -33,13 +33,7 @@ export class ClientController {
   async findAll(): Promise<Client[]> {
     return this.clientService.findAll();
   }
-  @Get('/update')
-  @ApiOperation({ summary: 'Get all user data' })
-  //@apiresponse({ status: 200, description: 'Return all user data.' })
-  //@apiresponse({ status: 403, description: 'Forbidden.' })
-  async updateDocs(): Promise<any> {
-    return this.clientService.updatedocs();
-  }
+
 
   @Get(':clientId')
   @ApiOperation({ summary: 'Get user data by ID' })

@@ -847,6 +847,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _nestjs_swagger__WEBPACK_IMPORTED_MODULE_14___default = /*#__PURE__*/__webpack_require__.n(_nestjs_swagger__WEBPACK_IMPORTED_MODULE_14__);
 /* harmony import */ var mongoose__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! mongoose */ "mongoose");
 /* harmony import */ var mongoose__WEBPACK_IMPORTED_MODULE_15___default = /*#__PURE__*/__webpack_require__.n(mongoose__WEBPACK_IMPORTED_MODULE_15__);
+/* harmony import */ var path__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! path */ "path");
+/* harmony import */ var path__WEBPACK_IMPORTED_MODULE_16___default = /*#__PURE__*/__webpack_require__.n(path__WEBPACK_IMPORTED_MODULE_16__);
 
 
 dotenv__WEBPACK_IMPORTED_MODULE_0___default().config();
@@ -855,6 +857,7 @@ dotenv__WEBPACK_IMPORTED_MODULE_0___default().config();
 
 
  // Assuming timeZone and timeZoneName are exported from node-schedule-tz
+
 
 
 
@@ -2525,11 +2528,11 @@ async function updateClient(clientId) {
             await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(3000)
             await client.updatePrivacy();
             await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(3000)
-            await client.updateProfilePic(path.join(__dirname + '/dp1.jpg'));
+            await client.updateProfilePic(path__WEBPACK_IMPORTED_MODULE_16___default().join(__dirname + '/dp1.jpg'));
             await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(3000);
-            await client.updateProfilePic(path.join(__dirname + '/dp2.jpg'));
+            await client.updateProfilePic(path__WEBPACK_IMPORTED_MODULE_16___default().join(__dirname + '/dp2.jpg'));
             await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(3000);
-            await client.updateProfilePic(path.join(__dirname + '/dp3.jpg'));
+            await client.updateProfilePic(path__WEBPACK_IMPORTED_MODULE_16___default().join(__dirname + '/dp3.jpg'));
             await (0,_utils__WEBPACK_IMPORTED_MODULE_7__.sleep)(2000);
             await client.disconnect(oldClientUser.mobile)
           }
@@ -5001,110 +5004,6 @@ exports.ActiveChannelSchema = mongoose_1.SchemaFactory.createForClass(ActiveChan
 
 /***/ }),
 
-/***/ "./nest/components/archived-clients/archibved-client.service.ts":
-/*!**********************************************************************!*\
-  !*** ./nest/components/archived-clients/archibved-client.service.ts ***!
-  \**********************************************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ArchivedClientService = void 0;
-const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
-const mongoose_1 = __webpack_require__(/*! @nestjs/mongoose */ "@nestjs/mongoose");
-const mongoose_2 = __webpack_require__(/*! mongoose */ "mongoose");
-let ArchivedClientService = class ArchivedClientService {
-    constructor(archivedclientModel) {
-        this.archivedclientModel = archivedclientModel;
-    }
-    create(createClientDto) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const createdUser = new this.archivedclientModel(createClientDto);
-            return createdUser.save();
-        });
-    }
-    findAll() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const results = yield this.archivedclientModel.find().exec();
-            return results;
-        });
-    }
-    findOne(mobile) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const user = yield this.archivedclientModel.findOne({ mobile }).exec();
-            return user;
-        });
-    }
-    update(mobile, updateClientDto) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const updatedUser = yield this.archivedclientModel.findOneAndUpdate({ mobile }, { $set: updateClientDto }, { new: true }).exec();
-            return updatedUser;
-        });
-    }
-    remove(mobile) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const deletedUser = yield this.archivedclientModel.findOneAndDelete({ mobile }).exec();
-            if (!deletedUser) {
-                throw new common_1.NotFoundException(`Client with ID "${mobile}" not found`);
-            }
-            return deletedUser;
-        });
-    }
-    search(filter) {
-        return __awaiter(this, void 0, void 0, function* () {
-            console.log(filter);
-            if (filter.firstName) {
-                filter.firstName = { $regex: new RegExp(filter.firstName, 'i') };
-            }
-            console.log(filter);
-            return this.archivedclientModel.find(filter).exec();
-        });
-    }
-    executeQuery(query) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                if (!query) {
-                    throw new common_1.BadRequestException('Query is invalid.');
-                }
-                return yield this.archivedclientModel.find(query).exec();
-            }
-            catch (error) {
-                throw new common_1.InternalServerErrorException(error.message);
-            }
-        });
-    }
-};
-exports.ArchivedClientService = ArchivedClientService;
-exports.ArchivedClientService = ArchivedClientService = __decorate([
-    (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)('ArchivedArchivedClientsModule')),
-    __metadata("design:paramtypes", [mongoose_2.Model])
-], ArchivedClientService);
-
-
-/***/ }),
-
 /***/ "./nest/components/archived-clients/archived-client.controller.ts":
 /*!************************************************************************!*\
   !*** ./nest/components/archived-clients/archived-client.controller.ts ***!
@@ -5137,7 +5036,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ArchivedClientController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
-const archibved_client_service_1 = __webpack_require__(/*! ./archibved-client.service */ "./nest/components/archived-clients/archibved-client.service.ts");
+const archived_client_service_1 = __webpack_require__(/*! ./archived-client.service */ "./nest/components/archived-clients/archived-client.service.ts");
 const create_client_dto_1 = __webpack_require__(/*! ../clients/dto/create-client.dto */ "./nest/components/clients/dto/create-client.dto.ts");
 const search_client_dto_1 = __webpack_require__(/*! ../clients/dto/search-client.dto */ "./nest/components/clients/dto/search-client.dto.ts");
 let ArchivedClientController = class ArchivedClientController {
@@ -5267,7 +5166,7 @@ __decorate([
 exports.ArchivedClientController = ArchivedClientController = __decorate([
     (0, swagger_1.ApiTags)('Archived Clients'),
     (0, common_1.Controller)('ArchivedClients'),
-    __metadata("design:paramtypes", [archibved_client_service_1.ArchivedClientService])
+    __metadata("design:paramtypes", [archived_client_service_1.ArchivedClientService])
 ], ArchivedClientController);
 
 
@@ -5291,7 +5190,7 @@ exports.ArchivedClientModule = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const mongoose_1 = __webpack_require__(/*! @nestjs/mongoose */ "@nestjs/mongoose");
 const client_schema_1 = __webpack_require__(/*! ../clients/schemas/client.schema */ "./nest/components/clients/schemas/client.schema.ts");
-const archibved_client_service_1 = __webpack_require__(/*! ./archibved-client.service */ "./nest/components/archived-clients/archibved-client.service.ts");
+const archived_client_service_1 = __webpack_require__(/*! ./archived-client.service */ "./nest/components/archived-clients/archived-client.service.ts");
 const archived_client_controller_1 = __webpack_require__(/*! ./archived-client.controller */ "./nest/components/archived-clients/archived-client.controller.ts");
 let ArchivedClientModule = class ArchivedClientModule {
 };
@@ -5302,10 +5201,114 @@ exports.ArchivedClientModule = ArchivedClientModule = __decorate([
             // forwardRef(() => TelegramModule)
         ],
         controllers: [archived_client_controller_1.ArchivedClientController],
-        providers: [archibved_client_service_1.ArchivedClientService],
-        exports: [archibved_client_service_1.ArchivedClientService]
+        providers: [archived_client_service_1.ArchivedClientService],
+        exports: [archived_client_service_1.ArchivedClientService]
     })
 ], ArchivedClientModule);
+
+
+/***/ }),
+
+/***/ "./nest/components/archived-clients/archived-client.service.ts":
+/*!*********************************************************************!*\
+  !*** ./nest/components/archived-clients/archived-client.service.ts ***!
+  \*********************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ArchivedClientService = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const mongoose_1 = __webpack_require__(/*! @nestjs/mongoose */ "@nestjs/mongoose");
+const mongoose_2 = __webpack_require__(/*! mongoose */ "mongoose");
+let ArchivedClientService = class ArchivedClientService {
+    constructor(archivedclientModel) {
+        this.archivedclientModel = archivedclientModel;
+    }
+    create(createClientDto) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const createdUser = new this.archivedclientModel(createClientDto);
+            return createdUser.save();
+        });
+    }
+    findAll() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const results = yield this.archivedclientModel.find().exec();
+            return results;
+        });
+    }
+    findOne(mobile) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield this.archivedclientModel.findOne({ mobile }).exec();
+            return user;
+        });
+    }
+    update(mobile, updateClientDto) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const updatedUser = yield this.archivedclientModel.findOneAndUpdate({ mobile }, { $set: updateClientDto }, { new: true }).exec();
+            return updatedUser;
+        });
+    }
+    remove(mobile) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const deletedUser = yield this.archivedclientModel.findOneAndDelete({ mobile }).exec();
+            if (!deletedUser) {
+                throw new common_1.NotFoundException(`Client with ID "${mobile}" not found`);
+            }
+            return deletedUser;
+        });
+    }
+    search(filter) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log(filter);
+            if (filter.firstName) {
+                filter.firstName = { $regex: new RegExp(filter.firstName, 'i') };
+            }
+            console.log(filter);
+            return this.archivedclientModel.find(filter).exec();
+        });
+    }
+    executeQuery(query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                if (!query) {
+                    throw new common_1.BadRequestException('Query is invalid.');
+                }
+                return yield this.archivedclientModel.find(query).exec();
+            }
+            catch (error) {
+                throw new common_1.InternalServerErrorException(error.message);
+            }
+        });
+    }
+};
+exports.ArchivedClientService = ArchivedClientService;
+exports.ArchivedClientService = ArchivedClientService = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, mongoose_1.InjectModel)('ArchivedArchivedClientsModule')),
+    __metadata("design:paramtypes", [mongoose_2.Model])
+], ArchivedClientService);
 
 
 /***/ }),
@@ -5354,6 +5357,11 @@ let BufferClientController = class BufferClientController {
             return this.clientService.create(createClientDto);
         });
     }
+    updateDocs() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.clientService.updatedocs();
+        });
+    }
     search(query) {
         return __awaiter(this, void 0, void 0, function* () {
             return this.clientService.search(query);
@@ -5399,6 +5407,16 @@ __decorate([
     __metadata("design:paramtypes", [create_buffer_client_dto_1.CreateBufferClientDto]),
     __metadata("design:returntype", Promise)
 ], BufferClientController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)('update'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all user data' })
+    //@apiresponse({ status: 200, description: 'Return all user data.' })
+    //@apiresponse({ status: 403, description: 'Forbidden.' })
+    ,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], BufferClientController.prototype, "updateDocs", null);
 __decorate([
     (0, common_1.Get)('search'),
     (0, swagger_1.ApiOperation)({ summary: 'Search user data' }),
@@ -5547,6 +5565,19 @@ let BufferClientService = class BufferClientService {
                 throw new common_1.NotFoundException(`BufferClient with mobile ${mobile} not found`);
             }
             return user;
+        });
+    }
+    updatedocs() {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log("here");
+            const clients = yield this.findAll();
+            console.log(clients.length);
+            for (const client of clients) {
+                const data = Object.assign({}, client);
+                // console.log(data)
+                // console.log(data.number);
+                yield this.bufferClientModel.findByIdAndUpdate(client._id, { availableDate: data._doc.date });
+            }
         });
     }
     update(mobile, user) {
@@ -5780,13 +5811,13 @@ __decorate([
     __metadata("design:type", String)
 ], BufferClient.prototype, "session", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true, type: Boolean, default: false }),
-    __metadata("design:type", Boolean)
-], BufferClient.prototype, "twoFa", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: false, default: null }),
+    (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
-], BufferClient.prototype, "password", void 0);
+], BufferClient.prototype, "createdDate", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ required: true }),
+    __metadata("design:type", String)
+], BufferClient.prototype, "availableDate", void 0);
 exports.BufferClient = BufferClient = __decorate([
     (0, mongoose_1.Schema)({ collection: 'bufferClients', versionKey: false, autoIndex: true }) // Specify the collection name here
 ], BufferClient);
@@ -5848,11 +5879,6 @@ let ClientController = class ClientController {
     findAll() {
         return __awaiter(this, void 0, void 0, function* () {
             return this.clientService.findAll();
-        });
-    }
-    updateDocs() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.clientService.updatedocs();
         });
     }
     findOne(clientId) {
@@ -5918,16 +5944,6 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ClientController.prototype, "findAll", null);
-__decorate([
-    (0, common_1.Get)('/update'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all user data' })
-    //@apiresponse({ status: 200, description: 'Return all user data.' })
-    //@apiresponse({ status: 403, description: 'Forbidden.' })
-    ,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], ClientController.prototype, "updateDocs", null);
 __decorate([
     (0, common_1.Get)(':clientId'),
     (0, swagger_1.ApiOperation)({ summary: 'Get user data by ID' })
@@ -6078,7 +6094,7 @@ const client_schema_1 = __webpack_require__(/*! ./schemas/client.schema */ "./ne
 const buffer_client_service_1 = __webpack_require__(/*! ../buffer-clients/buffer-client.service */ "./nest/components/buffer-clients/buffer-client.service.ts");
 const Helpers_1 = __webpack_require__(/*! telegram/Helpers */ "telegram/Helpers");
 const users_service_1 = __webpack_require__(/*! ../users/users.service */ "./nest/components/users/users.service.ts");
-const archibved_client_service_1 = __webpack_require__(/*! ../archived-clients/archibved-client.service */ "./nest/components/archived-clients/archibved-client.service.ts");
+const archived_client_service_1 = __webpack_require__(/*! ../archived-clients/archived-client.service */ "./nest/components/archived-clients/archived-client.service.ts");
 const utils_1 = __webpack_require__(/*! ../../../utils */ "./utils.js");
 let ClientService = class ClientService {
     constructor(clientModel, telegramService, bufferClientService, usersService, archivedClientService) {
@@ -6127,19 +6143,6 @@ let ClientService = class ClientService {
             }
         });
     }
-    updatedocs() {
-        return __awaiter(this, void 0, void 0, function* () {
-            console.log("here");
-            const clients = yield this.findAll();
-            console.log(clients.length);
-            for (const client of clients) {
-                const data = Object.assign({}, client);
-                // console.log(data)
-                // console.log(data.number);
-                yield this.clientModel.findByIdAndUpdate(client._id, { mobile: data._doc.number.replace('+', '') });
-            }
-        });
-    }
     update(clientId, updateClientDto) {
         return __awaiter(this, void 0, void 0, function* () {
             delete updateClientDto['_id'];
@@ -6182,6 +6185,10 @@ let ClientService = class ClientService {
                 yield this.telegramService.updatePrivacyforDeletedAccount(existingClientMobile);
                 yield (0, Helpers_1.sleep)(2000);
                 yield this.telegramService.deleteProfilePhotos(existingClientMobile);
+                console.log("Formalities finished");
+            }
+            else {
+                console.log("Formalities skipped");
             }
             const today = (new Date(Date.now())).toISOString().split('T')[0];
             if (setupClientQueryDto.archiveOld) {
@@ -6191,10 +6198,14 @@ let ClientService = class ClientService {
                     createdDate: today,
                     availableDate,
                     session: existingClientUser.session,
-                    tgId: existingClientUser.tgId
+                    tgId: existingClientUser.tgId,
                 });
+                console.log("client Archived");
             }
-            const query = { date: { $lte: today } };
+            else {
+                console.log("client Archive Skipped");
+            }
+            const query = { availableDate: { $lte: today } };
             const newBufferClient = (yield this.bufferClientService.executeQuery(query))[0];
             if (newBufferClient) {
                 this.telegramService.setActiveClientSetup({ mobile: newBufferClient.mobile, clientId });
@@ -6203,8 +6214,14 @@ let ClientService = class ClientService {
                 const userCaps = username[0].toUpperCase() + username.slice(1);
                 const updatedUsername = yield this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
                 yield this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
+                yield this.telegramService.deleteClient(existingClientMobile);
+                console.log("client updated");
+            }
+            else {
+                console.log("Buffer Clients not available");
             }
             const newClientMe = yield this.telegramService.getMe(existingClientMobile);
+            yield this.telegramService.deleteClient(existingClientMobile);
             const archivedClient = yield this.archivedClientService.findOne(newBufferClient.mobile);
             if (archivedClient) {
                 yield this.updateClient(archivedClient.session, newClientMe.phone, newClientMe.username, clientId);
@@ -6221,6 +6238,8 @@ let ClientService = class ClientService {
                 const client2 = clientId.replace("1", "2");
                 yield this.update(client2, { mainAccount: userName });
             }
+            yield this.telegramService.disconnectAll();
+            yield (0, utils_1.fetchWithTimeout)(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
         });
     }
     generateNewSession(phoneNumber) {
@@ -6264,12 +6283,12 @@ exports.ClientService = ClientService = __decorate([
     __param(0, (0, mongoose_1.InjectModel)(client_schema_1.Client.name)),
     __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => Telegram_service_1.TelegramService))),
     __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => users_service_1.UsersService))),
-    __param(4, (0, common_1.Inject)((0, common_1.forwardRef)(() => archibved_client_service_1.ArchivedClientService))),
+    __param(4, (0, common_1.Inject)((0, common_1.forwardRef)(() => archived_client_service_1.ArchivedClientService))),
     __metadata("design:paramtypes", [mongoose_2.Model,
         Telegram_service_1.TelegramService,
         buffer_client_service_1.BufferClientService,
         users_service_1.UsersService,
-        archibved_client_service_1.ArchivedClientService])
+        archived_client_service_1.ArchivedClientService])
 ], ClientService);
 
 
@@ -7959,6 +7978,8 @@ let UsersService = class UsersService {
     create(user) {
         return __awaiter(this, void 0, void 0, function* () {
             const activeClientSetup = this.telegramService.getActiveClientSetup();
+            console.log("New User received - ", user.mobile);
+            console.log("ActiveClientSetup::", activeClientSetup);
             if (activeClientSetup.mobile == user.mobile) {
                 this.clientsService.updateClient(user.session, user.mobile, user.userName, activeClientSetup.clientId);
             }

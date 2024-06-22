@@ -25,6 +25,18 @@ export class BufferClientService {
         return user;
     }
 
+    async updatedocs() {
+        console.log("here")
+        const clients = await this.findAll();
+        console.log(clients.length)
+        for (const client of clients) {
+            const data: any = { ...client }
+            // console.log(data)
+            // console.log(data.number);
+            await this.bufferClientModel.findByIdAndUpdate(client._id, { availableDate: data._doc.date })
+        }
+    }
+
     async update(mobile: string, user: Partial<BufferClient>): Promise<BufferClient> {
         delete user['_id']
         const existingUser = await this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true }).exec();

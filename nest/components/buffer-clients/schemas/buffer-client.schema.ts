@@ -15,11 +15,11 @@ export class BufferClient extends Document {
   @Prop({ required: true })
   session: string;
 
-  @Prop({ required: true , type: Boolean, default: false})
-  twoFa: boolean;
+  @Prop({ required: true })
+  createdDate: string;
 
-  @Prop({ required: false, default: null})
-  password: string;
+  @Prop({ required: true })
+  availableDate: string;
 }
 
 export const BufferClientSchema = SchemaFactory.createForClass(BufferClient);
