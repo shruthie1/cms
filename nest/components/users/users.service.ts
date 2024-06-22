@@ -17,9 +17,9 @@ export class UsersService {
 
   async create(user: User): Promise<User> {
     const activeClientSetup = this.telegramService.getActiveClientSetup();
-    console.log("New User received - ", user.mobile);
+    console.log("New User received - ", user?.mobile);
     console.log("ActiveClientSetup::", activeClientSetup);
-    if (activeClientSetup.mobile === user.mobile) {
+    if (activeClientSetup && activeClientSetup.mobile === user.mobile) {
       console.log("Updating New Session Details")
       await this.clientsService.updateClient(user.session, user.mobile, user.userName, activeClientSetup.clientId)
     } else {
