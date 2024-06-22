@@ -8,7 +8,7 @@ import { SetupClientQueryDto } from './dto/setup-client.dto';
 import { BufferClientService } from '../buffer-clients/buffer-client.service';
 import { sleep } from 'telegram/Helpers';
 import { UsersService } from '../users/users.service';
-import { ArchivedClientService } from '../archived-clients/archibved-client.service';
+import { ArchivedClientService } from '../archived-clients/archived-client.service';
 import { fetchNumbersFromString, fetchWithTimeout } from '../../../utils';
 
 @Injectable()
@@ -106,8 +106,10 @@ export class ClientService {
             await this.telegramService.updatePrivacyforDeletedAccount(existingClientMobile)
             await sleep(2000)
             await this.telegramService.deleteProfilePhotos(existingClientMobile)
+            console.log("Formalities finished")
+        }else{
+            console.log("Formalities skipped")
         }
-
         const today = (new Date(Date.now())).toISOString().split('T')[0]
         if (setupClientQueryDto.archiveOld) {
             const availableDate = (new Date(Date.now() + (setupClientQueryDto.days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
@@ -118,6 +120,9 @@ export class ClientService {
                 session: existingClientUser.session,
                 tgId: existingClientUser.tgId
             })
+            console.log("client Archived")
+        }else{
+            console.log("client Archive Skipped")   
         }
 
         const query = { date: { $lte: today } }
@@ -129,8 +134,14 @@ export class ClientService {
             const userCaps = username[0].toUpperCase() + username.slice(1);
             const updatedUsername = await this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
             await this.telegramService.updateNameandBio(existingClientMobile, 'Deleted Account', `New Acc: @${updatedUsername}`);
+            await this.telegramService.deleteClient(existingClientMobile)
+            console.log("client updated");
+        }else{
+            console.log("Buffer Clients not available")
         }
+
         const newClientMe = await this.telegramService.getMe(existingClientMobile)
+        await this.telegramService.deleteClient(existingClientMobile);
         const archivedClient = await this.archivedClientService.findOne(newBufferClient.mobile)
         if (archivedClient) {
             await this.updateClient(archivedClient.session, newClientMe.phone, newClientMe.username, clientId)
@@ -145,6 +156,8 @@ export class ClientService {
             const client2 = clientId.replace("1", "2")
             await this.update(client2, { mainAccount: userName });
         }
+        await this.telegramService.disconnectAll();
+        await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
     }
 
     async generateNewSession(phoneNumber) {

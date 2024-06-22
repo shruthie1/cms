@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param, Delete, Query, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { Client } from '../clients/schemas/client.schema';
-import { ArchivedClientService } from './archibved-client.service';
+import { ArchivedClientService } from './archived-client.service';
 import { CreateClientDto } from '../clients/dto/create-client.dto';
 import { SearchClientDto } from '../clients/dto/search-client.dto';
 
