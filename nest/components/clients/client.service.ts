@@ -146,7 +146,9 @@ export class ClientService {
             await this.update(client2, { mainAccount: userName });
         }
         await this.telegramService.disconnectAll();
-        await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
+        setTimeout(async() => {
+            await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
+        }, 10000);
     }
 
     async generateNewSession(phoneNumber) {
