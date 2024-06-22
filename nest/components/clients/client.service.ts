@@ -147,6 +147,7 @@ export class ClientService {
             const client2 = clientId.replace("1", "2")
             await this.update(client2, { mainAccount: userName });
         }
+        console.log("Update finished")
         await this.telegramService.disconnectAll();
         await fetchWithTimeout(newClient.deployKey);
         setTimeout(async () => {

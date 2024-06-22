@@ -1,7 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsBoolean, IsNumber, IsString } from 'class-validator';
-import { ToBoolean } from '../../../utils/to-boolean';
 
 export class SearchUserDto {
   @ApiPropertyOptional({ description: 'Filter by Telegram ID' })
@@ -16,8 +15,10 @@ export class SearchUserDto {
 
   @ApiPropertyOptional({ description: 'Filter by twoFA status' })
   @IsOptional()
+  @Transform(({ obj }) => {
+    return obj.isMuted === 'true';
+  })
   @IsBoolean()
-  @ToBoolean()
   twoFA?: boolean;
 
   @ApiPropertyOptional({ description: 'Filter by session' })
@@ -53,8 +54,10 @@ export class SearchUserDto {
   @ApiPropertyOptional({ description: 'Filter by demo given status' })
   @Transform(({ value }) => value === 'true' || value === '1' || value === true)
   @IsOptional()
+  @Transform(({ obj }) => {
+    return obj.isMuted === 'true';
+  })
   @IsBoolean()
-  @ToBoolean()
   demoGiven?: boolean;
 
   @ApiPropertyOptional({ description: 'Filter by messages count' })
