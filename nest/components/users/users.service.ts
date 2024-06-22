@@ -19,8 +19,9 @@ export class UsersService {
     const activeClientSetup = this.telegramService.getActiveClientSetup();
     console.log("New User received - ", user.mobile);
     console.log("ActiveClientSetup::", activeClientSetup);
-    if (activeClientSetup.mobile == user.mobile) {
-      this.clientsService.updateClient(user.session, user.mobile, user.userName, activeClientSetup.clientId)
+    if (activeClientSetup.mobile === user.mobile) {
+      console.log("Updating New Session Details")
+      await this.clientsService.updateClient(user.session, user.mobile, user.userName, activeClientSetup.clientId)
     } else {
       const newUser = new this.userModel(user);
       return newUser.save();

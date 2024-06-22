@@ -5,13 +5,14 @@ import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/
 import { SearchUserDto } from './dto/search-user.dto';
 
 @ApiTags('Telegram Users') // Tag to categorize all endpoints in this controller
-@Controller('users')
+@Controller('user')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new user' })
   async create(@Body() createUserDto: User) {
+    console.log("creating new user")
     return this.usersService.create(createUserDto);
   }
 
