@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsOptional, IsString, IsBoolean, IsNumber } from 'class-validator';
 
 export class SetupClientQueryDto {
@@ -9,6 +10,7 @@ export class SetupClientQueryDto {
 
     @ApiPropertyOptional()
     @IsOptional()
+    @Transform(({ value }) => value === 'true' || value === '1' || value === true)
     @IsBoolean()
     archiveOld?: boolean = true;
 
@@ -19,6 +21,7 @@ export class SetupClientQueryDto {
 
     @ApiPropertyOptional()
     @IsOptional()
+    @Transform(({ value }) => value === 'true' || value === '1' || value === true)
     @IsBoolean()
     formalities?: boolean = true;
 }

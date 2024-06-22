@@ -85,6 +85,7 @@ export class ClientService {
     }
 
     async setupClient(clientId: string, setupClientQueryDto: SetupClientQueryDto) {
+        console.log(setupClientQueryDto);
         const existingClient = await this.findOne(clientId);
         const existingClientMobile = existingClient.mobile
         const existingClientUser = (await this.usersService.search({ mobile: existingClientMobile }))[0];
