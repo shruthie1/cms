@@ -1670,7 +1670,7 @@ async function updateClient(clientId) {
     const oldClient = await db.getUserConfig({ clientId })
     if (oldClient) {
       try {
-        const oldClientUser = await db.getUser({ mobile: (oldClient?.number.toString()).replace("+", '') });
+        const oldClientUser = await db.getUser({ mobile: (oldClient?.mobile.toString()).replace("+", '') });
         if (oldClientUser) {
           const cli = await createClient(oldClientUser?.mobile, oldClientUser?.session);
           if (cli) {
