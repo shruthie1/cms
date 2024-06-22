@@ -42,16 +42,19 @@ export class BufferClientService {
         console.log(clients.length)
         for (const client of clients) {
             const data: any = { ...client }
+            await this.telegramService.createClient(client.mobile)
+            const channelinfo = await this.telegramService.getChannelInfo(client.mobile, true)
             // console.log(data)
             // console.log(data.number);
-            await this.bufferClientModel.findByIdAndUpdate(client._id, { availableDate: data._doc.date })
+            await this.bufferClientModel.findByIdAndUpdate(client._id, { channels: channelinfo.ids.length, createdDate: (new Date(Date.now())).toISOString().split('T')[0] })
         }
     }
 
     async update(mobile: string, user: Partial<BufferClient>): Promise<BufferClient> {
-        delete user['_id'];
-        console.log({ ...user })
-        const existingUser = await this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true, upsert: true }).exec();
+        const updatedData = { ...user }
+        delete updatedData['_id'];
+        console.log({ ...updatedData })
+        const existingUser = await this.bufferClientModel.findOneAndUpdate({ mobile }, { updatedData }, { new: true, upsert: true }).exec();
         if (!existingUser) {
             throw new NotFoundException(`BufferClient with mobile ${mobile} not found`);
         }
@@ -126,8 +129,8 @@ export class BufferClientService {
                     badIds.push(document.mobile);
                     await this.remove(document.mobile);
                 } else {
-                    const channels = await this.telegramService.getChannelInfo(document.mobile);
-                    await this.update(document.mobile, { channels: channels.ids.length });
+                    const channelinfo = await this.telegramService.getChannelInfo(document.mobile, true);
+                    await this.bufferClientModel.findByIdAndUpdate(document._id, { channels: channelinfo.ids.length, updatedDate: (new Date(Date.now())).toISOString().split('T')[0] })
                     console.log(document.mobile, " :  ALL Good");
                     goodIds.push(document.mobile)
                 }
@@ -145,7 +148,7 @@ export class BufferClientService {
 
     async addNewUserstoBufferClients(badIds: string[], goodIds: string[]) {
         const documents = await this.usersService.executeQuery({ "mobile": { $nin: goodIds }, twoFA: { $exists: false } }, { lastActive: 1 }, badIds.length + 3);
-        console.log("documents : ",documents.length)
+        console.log("documents : ", documents.length)
         while (badIds.length > 0 && documents.length > 0) {
             const document = documents.shift();
             try {
@@ -165,7 +168,7 @@ export class BufferClientService {
                         await client.updateProfile("Deleted Account", "Deleted Account");
                         await sleep(3000)
                         await client.deleteProfilePhotos();
-                        const channels = await client.channelInfo()
+                        const channels = await client.channelInfo(true)
                         console.log("Inserting Document");
                         const bufferClient = {
                             tgId: document.tgId,
@@ -173,7 +176,8 @@ export class BufferClientService {
                             mobile: document.mobile,
                             createdDate: (new Date(Date.now())).toISOString().split('T')[0],
                             availableDate: (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0],
-                            channels: channels.ids.length
+                            channels: channels.ids.length,
+                            updatedDate: (new Date(Date.now())).toISOString().split('T')[0],
                         }
                         await this.create(bufferClient);
                         console.log("=============Created BufferClient=============")

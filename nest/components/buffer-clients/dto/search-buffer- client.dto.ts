@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsNumber } from 'class-validator';
 
 export class SearchBufferClientDto {
   @ApiPropertyOptional({
@@ -41,4 +41,12 @@ export class SearchBufferClientDto {
   @IsOptional()
   @IsString()
   readonly session?: string;
+
+  @ApiPropertyOptional({
+    description: 'Channel Count',
+    example: 23,
+    type: Number
+  })
+  @IsNumber()
+  readonly channels?: number;
 }

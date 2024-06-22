@@ -17,11 +17,18 @@ export class CreateBufferClientDto {
   readonly mobile: string;
 
   @ApiProperty({
-    description: 'Date of the session',
+    description: 'Date of the creation',
     example: '2023-06-22',
   })
   @IsString()
   readonly createdDate: string;
+
+  @ApiProperty({
+    description: 'Date of the updation',
+    example: '2023-06-22',
+  })
+  @IsString()
+  readonly updatedDate: string;
 
   @ApiProperty({
     description: 'Date of the session',
@@ -40,6 +47,7 @@ export class CreateBufferClientDto {
   @ApiProperty({
     description: 'Channel Count',
     example: 23,
+    type: Number
   })
   @IsNumber()
   readonly channels: number;

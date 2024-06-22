@@ -64,14 +64,14 @@ fetchWithTimeout('https://ipinfo.io/json')
     }, 100);
     setTimeout(() => {
       if (!getActiveClientSetup()) {
-        // joinchannelForBufferClients();
+        joinchannelForBufferClients();
       }
     }, 120000);
   }).catch(err => {
     console.error(err)
     setTimeout(() => {
       if (!getActiveClientSetup()) {
-        // joinchannelForBufferClients();
+        joinchannelForBufferClients();
       }
     }, 120000);
   })

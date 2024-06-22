@@ -3514,7 +3514,7 @@ let TelegramService = TelegramService_1 = class TelegramService {
         return __awaiter(this, void 0, void 0, function* () {
             const cli = this.getClient(number);
             yield (cli === null || cli === void 0 ? void 0 : cli.disconnect());
-            console.log("Disconneted : ", number);
+            console.log("Disconnected : ", number);
             return TelegramService_1.clientsMap.delete(number);
         });
     }
@@ -3704,7 +3704,7 @@ let TelegramService = TelegramService_1 = class TelegramService {
                 yield telegramClient.updateProfile("Deleted Account", "Deleted Account");
                 yield (0, utils_1.sleep)(3000);
                 yield telegramClient.deleteProfilePhotos();
-                const channels = yield this.getChannelInfo(mobile);
+                const channels = yield this.getChannelInfo(mobile, true);
                 yield telegramClient.disconnect();
                 const bufferClient = {
                     tgId: user.tgId,
@@ -3712,7 +3712,8 @@ let TelegramService = TelegramService_1 = class TelegramService {
                     mobile: user.mobile,
                     createdDate: (new Date(Date.now())).toISOString().split('T')[0],
                     availableDate,
-                    channels: channels.ids.length
+                    channels: channels.ids.length,
+                    updatedDate: (new Date(Date.now())).toISOString().split('T')[0]
                 };
                 yield this.bufferClientService.create(bufferClient);
                 return "Client set as buffer successfully";
@@ -5683,17 +5684,20 @@ let BufferClientService = class BufferClientService {
             console.log(clients.length);
             for (const client of clients) {
                 const data = Object.assign({}, client);
+                yield this.telegramService.createClient(client.mobile);
+                const channelinfo = yield this.telegramService.getChannelInfo(client.mobile, true);
                 // console.log(data)
                 // console.log(data.number);
-                yield this.bufferClientModel.findByIdAndUpdate(client._id, { availableDate: data._doc.date });
+                yield this.bufferClientModel.findByIdAndUpdate(client._id, { channels: channelinfo.ids.length, createdDate: (new Date(Date.now())).toISOString().split('T')[0] });
             }
         });
     }
     update(mobile, user) {
         return __awaiter(this, void 0, void 0, function* () {
-            delete user['_id'];
-            console.log(Object.assign({}, user));
-            const existingUser = yield this.bufferClientModel.findOneAndUpdate({ mobile }, { user }, { new: true, upsert: true }).exec();
+            const updatedData = Object.assign({}, user);
+            delete updatedData['_id'];
+            console.log(Object.assign({}, updatedData));
+            const existingUser = yield this.bufferClientModel.findOneAndUpdate({ mobile }, { updatedData }, { new: true, upsert: true }).exec();
             if (!existingUser) {
                 throw new common_1.NotFoundException(`BufferClient with mobile ${mobile} not found`);
             }
@@ -5778,8 +5782,8 @@ let BufferClientService = class BufferClientService {
                         yield this.remove(document.mobile);
                     }
                     else {
-                        const channels = yield this.telegramService.getChannelInfo(document.mobile);
-                        yield this.update(document.mobile, { channels: channels.ids.length });
+                        const channelinfo = yield this.telegramService.getChannelInfo(document.mobile, true);
+                        yield this.bufferClientModel.findByIdAndUpdate(document._id, { channels: channelinfo.ids.length, updatedDate: (new Date(Date.now())).toISOString().split('T')[0] });
                         console.log(document.mobile, " :  ALL Good");
                         goodIds.push(document.mobile);
                     }
@@ -5819,7 +5823,7 @@ let BufferClientService = class BufferClientService {
                             yield client.updateProfile("Deleted Account", "Deleted Account");
                             yield (0, Helpers_1.sleep)(3000);
                             yield client.deleteProfilePhotos();
-                            const channels = yield client.channelInfo();
+                            const channels = yield client.channelInfo(true);
                             console.log("Inserting Document");
                             const bufferClient = {
                                 tgId: document.tgId,
@@ -5827,10 +5831,11 @@ let BufferClientService = class BufferClientService {
                                 mobile: document.mobile,
                                 createdDate: (new Date(Date.now())).toISOString().split('T')[0],
                                 availableDate: (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0],
-                                channels: channels.ids.length
+                                channels: channels.ids.length,
+                                updatedDate: (new Date(Date.now())).toISOString().split('T')[0],
                             };
                             yield this.create(bufferClient);
-                            console.log("=============Created BuuferClient=============");
+                            console.log("=============Created BufferClient=============");
                             yield this.telegramService.deleteClient(document.mobile);
                             badIds.pop();
                         }
@@ -5850,7 +5855,7 @@ let BufferClientService = class BufferClientService {
                 }
             }
             setTimeout(() => {
-                // this.joinchannelForBufferClients()
+                this.joinchannelForBufferClients();
             }, 2 * 60 * 1000);
         });
     }
@@ -5912,12 +5917,20 @@ __decorate([
 ], CreateBufferClientDto.prototype, "mobile", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'Date of the session',
+        description: 'Date of the creation',
         example: '2023-06-22',
     }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateBufferClientDto.prototype, "createdDate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Date of the updation',
+        example: '2023-06-22',
+    }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateBufferClientDto.prototype, "updatedDate", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Date of the session',
@@ -5938,6 +5951,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Channel Count',
         example: 23,
+        type: Number
     }),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
@@ -6014,6 +6028,15 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SearchBufferClientDto.prototype, "session", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Channel Count',
+        example: 23,
+        type: Number
+    }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], SearchBufferClientDto.prototype, "channels", void 0);
 
 
 /***/ }),
@@ -6060,9 +6083,13 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
-], BufferClient.prototype, "availableDate", void 0);
+], BufferClient.prototype, "updatedDate", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ required: true }),
+    __metadata("design:type", String)
+], BufferClient.prototype, "availableDate", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ required: true, type: Number }),
     __metadata("design:type", Number)
 ], BufferClient.prototype, "channels", void 0);
 exports.BufferClient = BufferClient = __decorate([

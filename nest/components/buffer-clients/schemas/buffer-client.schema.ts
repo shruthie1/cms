@@ -16,10 +16,13 @@ export class BufferClient extends Document {
   createdDate: string;
 
   @Prop({ required: true })
-  availableDate: string;
+  updatedDate: string;
 
   @Prop({ required: true })
-  channels: Number;
+  availableDate: string;
+
+  @Prop({ required: true, type: Number })
+  channels: number;
 }
 
 export const BufferClientSchema = SchemaFactory.createForClass(BufferClient);
