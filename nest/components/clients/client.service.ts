@@ -142,12 +142,13 @@ export class ClientService {
     }
 
     async updateClient(session: string, mobile: string, userName: string, clientId: string) {
-        await this.update(clientId, { session: session, mobile, userName, mainAccount: userName });
+        const newClient = await this.update(clientId, { session: session, mobile, userName, mainAccount: userName });
         if (fetchNumbersFromString(clientId) == '2') {
             const client2 = clientId.replace("1", "2")
             await this.update(client2, { mainAccount: userName });
         }
         await this.telegramService.disconnectAll();
+        await fetchWithTimeout(newClient.deployKey);
         setTimeout(async () => {
             await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
         }, 10000);
