@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsOptional, IsBoolean, IsNumber, IsString } from 'class-validator';
 
 export class SearchUserDto {
@@ -13,11 +13,9 @@ export class SearchUserDto {
   @IsString()
   mobile?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by twoFA status' })
+  @ApiPropertyOptional({ description: 'Filter by twoFA status', type: Boolean })
   @IsOptional()
-  @Transform(({ obj }) => {
-    return obj.isMuted === 'true';
-  })
+  @Type(() => Boolean)
   @IsBoolean()
   twoFA?: boolean;
 
@@ -51,12 +49,10 @@ export class SearchUserDto {
   @IsNumber()
   personalChats?: number;
 
-  @ApiPropertyOptional({ description: 'Filter by demo given status' })
+  @ApiPropertyOptional({ description: 'Filter by demo given status', type: Boolean })
   @Transform(({ value }) => value === 'true' || value === '1' || value === true)
   @IsOptional()
-  @Transform(({ obj }) => {
-    return obj.isMuted === 'true';
-  })
+  @Type(() => Boolean)
   @IsBoolean()
   demoGiven?: boolean;
 
