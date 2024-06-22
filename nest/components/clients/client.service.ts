@@ -103,7 +103,7 @@ export class ClientService {
         const today = (new Date(Date.now())).toISOString().split('T')[0]
         if (setupClientQueryDto.archiveOld) {
             const availableDate = (new Date(Date.now() + (setupClientQueryDto.days * 24 * 60 * 60 * 1000))).toISOString().split('T')[0]
-            await this.bufferClientService.update(existingClientMobile,{
+            await this.bufferClientService.update(existingClientMobile, {
                 mobile: existingClientMobile,
                 createdDate: today,
                 availableDate,
@@ -119,7 +119,7 @@ export class ClientService {
         const newBufferClient = (await this.bufferClientService.executeQuery(query))[0];
         if (newBufferClient) {
             this.telegramService.setActiveClientSetup({ mobile: newBufferClient.mobile, clientId })
-            await this.telegramService.createClient(newBufferClient.mobile);
+            await this.telegramService.createClient(newBufferClient.mobile, false, true);
             const username = (clientId?.match(/[a-zA-Z]+/g)).toString();
             const userCaps = username[0].toUpperCase() + username.slice(1);
             const updatedUsername = await this.telegramService.updateUsername(newBufferClient.mobile, `${userCaps}_Redd`);
@@ -148,7 +148,7 @@ export class ClientService {
             await this.update(client2, { mainAccount: userName });
         }
         await this.telegramService.disconnectAll();
-        setTimeout(async() => {
+        setTimeout(async () => {
             await fetchWithTimeout(`${process.env.uptimeChecker}/forward/updateclient/${clientId}`);
         }, 10000);
     }
@@ -159,10 +159,10 @@ export class ClientService {
             await sleep(1000);
             const response = await fetchWithTimeout(`https://tgsignup.onrender.com/login?phone=${phoneNumber}&force=${true}`, { timeout: 15000 }, 1);
             if (response) {
-                console.log(`Code Sent successfully`, response);
+                console.log(`Code Sent successfully`, response.data);
                 // await fetchWithTimeout(`${ppplbot()}&text=${encodeURIComponent(`Code Sent successfully-${response}-${phoneNumber}`)}`);
             } else {
-                console.log(`Failed to send Code-${JSON.stringify(response)}`);
+                console.log("Failed to send Code", response);
                 await sleep(5000);
                 await this.generateNewSession(phoneNumber);
             }

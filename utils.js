@@ -28,7 +28,7 @@ export async function fetchWithTimeout(resource, options = {}, maxRetries = 3) {
       if (axios.isCancel(error)) {
         console.log('Request canceled:', error.message, resource);
       } else {
-        console.log('Error:', error.message);
+        parseError(error)
       }
       if (retryCount < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay

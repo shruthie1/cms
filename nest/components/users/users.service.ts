@@ -5,7 +5,6 @@ import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { SearchUserDto } from './dto/search-user.dto';
 import { ClientService } from '../clients/client.service';
-import { Api } from 'telegram';
 
 @Injectable()
 export class UsersService {
