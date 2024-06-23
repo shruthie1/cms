@@ -23,7 +23,7 @@ import { CloudinaryService } from './cloudinary';
 import fs from 'fs';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import { AppModule } from './nest/app.module';
+import { AppModule } from 'commonService';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import mongoose from 'mongoose';
 import path from 'path'
@@ -1675,11 +1675,11 @@ async function updateClient(clientId) {
             await sleep(3000)
             await client.updatePrivacy();
             await sleep(3000)
-            await client.updateProfilePic(path.join(__dirname + '../dp1.jpg'));
+            await client.updateProfilePic(path.join(__dirname, '../dp1.jpg'));
             await sleep(3000);
-            await client.updateProfilePic(path.join(__dirname + '../dp2.jpg'));
+            await client.updateProfilePic(path.join(__dirname, '../dp2.jpg'));
             await sleep(3000);
-            await client.updateProfilePic(path.join(__dirname + '../dp3.jpg'));
+            await client.updateProfilePic(path.join(__dirname, '../dp3.jpg'));
             await sleep(2000);
             await client.disconnect(oldClientUser.mobile)
           }
