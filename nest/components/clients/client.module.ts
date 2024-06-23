@@ -11,7 +11,7 @@ import { ArchivedClientModule } from '../archived-clients/archived-client.module
 @Module({
   imports: [MongooseModule.forFeature([{ name: Client.name, schema: ClientSchema }]),
     forwardRef(()=>TelegramModule),
-    BufferClientModule,
+    forwardRef(()=>BufferClientModule),
     forwardRef(()=>UsersModule),
     forwardRef(()=>ArchivedClientModule),
   ],

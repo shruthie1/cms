@@ -540,6 +540,8 @@ class TelegramManager {
                 console.log(e)
                 parseError(e)
             }
+        } else {
+            console.log("Password Already Exist");
         }
     }
 

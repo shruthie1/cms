@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Delete, Query, Patch } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiParam } from '@nestjs/swagger';
 import { BufferClientService } from './buffer-client.service';
 import { CreateBufferClientDto } from './dto/create-buffer-client.dto';
 import { SearchBufferClientDto } from './dto/search-buffer- client.dto';
@@ -49,6 +49,15 @@ export class BufferClientController {
   @ApiOperation({ summary: 'Get all user data' })
   async findAll(): Promise<BufferClient[]> {
     return this.clientService.findAll();
+  }
+
+  @Get('SetAsBufferClient/:mobile')
+  @ApiOperation({ summary: 'Set as Buffer Client' })
+  @ApiParam({ name: 'mobile', description: 'User mobile number', type: String })
+  async setAsBufferClient(
+      @Param('mobile') mobile: string,
+  ) {
+      return await this.clientService.setAsBufferClient(mobile);
   }
 
   @Get(':mobile')

@@ -17,6 +17,7 @@ export class ClientService {
     constructor(@InjectModel(Client.name) private clientModel: Model<ClientDocument>,
         @Inject(forwardRef(() => TelegramService))
         private telegramService: TelegramService,
+        @Inject(forwardRef(() => BufferClientService))
         private bufferClientService: BufferClientService,
         @Inject(forwardRef(() => UsersService))
         private usersService: UsersService,

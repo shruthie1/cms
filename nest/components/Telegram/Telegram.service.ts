@@ -185,44 +185,6 @@ export class TelegramService {
         }
     }
 
-    async setAsBufferClient(
-        mobile: string,
-        availableDate: string = (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0]
-    ) {
-        const user = (await this.usersService.search({ mobile }))[0];
-        if (!user) {
-            throw new BadRequestException('user not found');
-        }
-        const telegramClient = TelegramService.clientsMap.get(mobile)
-        try {
-            await telegramClient.set2fa();
-            await sleep(15000)
-            await telegramClient.updateUsername('');
-            await sleep(3000)
-            await telegramClient.updatePrivacyforDeletedAccount();
-            await sleep(3000)
-            await telegramClient.updateProfile("Deleted Account", "Deleted Account");
-            await sleep(3000)
-            await telegramClient.deleteProfilePhotos();
-            const channels = await this.getChannelInfo(mobile, true)
-            await telegramClient.disconnect();
-            const bufferClient = {
-                tgId: user.tgId,
-                session: user.session,
-                mobile: user.mobile,
-                createdDate: (new Date(Date.now())).toISOString().split('T')[0],
-                availableDate,
-                channels: channels.ids.length,
-                updatedDate: (new Date(Date.now())).toISOString().split('T')[0]
-            }
-            await this.bufferClientService.create(bufferClient)
-            return "Client set as buffer successfully";
-        } catch (error) {
-            const errorDetails = parseError(error)
-            throw new HttpException(errorDetails.message, parseInt(errorDetails.status))
-        }
-    }
-
     async updatePrivacy(
         mobile: string,
     ) {

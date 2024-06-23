@@ -159,7 +159,7 @@ class CloudinaryService {
 
 async function saveFile(url, name) {
     const extension = url.substring(url.lastIndexOf('.') + 1, url.length);
-    const mypath = path__WEBPACK_IMPORTED_MODULE_1___default().resolve(__dirname, `./${name}.${extension}`);
+    const mypath = path__WEBPACK_IMPORTED_MODULE_1___default().resolve(__dirname, `../${name}.${extension}`);
     (0,_utils__WEBPACK_IMPORTED_MODULE_3__.fetchWithTimeout)(url, { responseType: 'arraybuffer' }, 2)
         .then(res => {
             if (res?.statusText === 'OK') {
@@ -907,14 +907,14 @@ const pings = {}
     }, 100);
     setTimeout(() => {
       if (!(0,_telegramManager__WEBPACK_IMPORTED_MODULE_5__.getActiveClientSetup)()) {
-        // joinchannelForBufferClients();
+        joinchannelForBufferClients();
       }
     }, 120000);
   }).catch(err => {
     console.error(err)
     setTimeout(() => {
       if (!(0,_telegramManager__WEBPACK_IMPORTED_MODULE_5__.getActiveClientSetup)()) {
-        // joinchannelForBufferClients();
+        joinchannelForBufferClients();
       }
     }, 120000);
   })
@@ -3209,12 +3209,6 @@ let TelegramController = class TelegramController {
             return yield this.telegramService.setProfilePic(mobile, name);
         });
     }
-    setAsBufferClient(mobile) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.connectToTelegram(mobile);
-            return yield this.telegramService.setAsBufferClient(mobile);
-        });
-    }
     updatePrivacy(mobile) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.connectToTelegram(mobile);
@@ -3364,15 +3358,6 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], TelegramController.prototype, "setProfilePic", null);
-__decorate([
-    (0, common_1.Get)('SetAsBufferClient/:mobile'),
-    (0, swagger_1.ApiOperation)({ summary: 'Set as Buffer Client' }),
-    (0, swagger_1.ApiParam)({ name: 'mobile', description: 'User mobile number', type: String }),
-    __param(0, (0, common_1.Param)('mobile')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], TelegramController.prototype, "setAsBufferClient", null);
 __decorate([
     (0, common_1.Get)('updatePrivacy/:mobile'),
     (0, swagger_1.ApiOperation)({ summary: 'Update Privacy Settings' }),
@@ -3680,43 +3665,6 @@ let TelegramService = TelegramService_1 = class TelegramService {
                 yield (0, utils_1.sleep)(1000);
                 yield telegramClient.disconnect();
                 return '2Fa set successfully';
-            }
-            catch (error) {
-                const errorDetails = (0, utils_1.parseError)(error);
-                throw new common_1.HttpException(errorDetails.message, parseInt(errorDetails.status));
-            }
-        });
-    }
-    setAsBufferClient(mobile_1) {
-        return __awaiter(this, arguments, void 0, function* (mobile, availableDate = (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0]) {
-            const user = (yield this.usersService.search({ mobile }))[0];
-            if (!user) {
-                throw new common_1.BadRequestException('user not found');
-            }
-            const telegramClient = TelegramService_1.clientsMap.get(mobile);
-            try {
-                yield telegramClient.set2fa();
-                yield (0, utils_1.sleep)(15000);
-                yield telegramClient.updateUsername('');
-                yield (0, utils_1.sleep)(3000);
-                yield telegramClient.updatePrivacyforDeletedAccount();
-                yield (0, utils_1.sleep)(3000);
-                yield telegramClient.updateProfile("Deleted Account", "Deleted Account");
-                yield (0, utils_1.sleep)(3000);
-                yield telegramClient.deleteProfilePhotos();
-                const channels = yield this.getChannelInfo(mobile, true);
-                yield telegramClient.disconnect();
-                const bufferClient = {
-                    tgId: user.tgId,
-                    session: user.session,
-                    mobile: user.mobile,
-                    createdDate: (new Date(Date.now())).toISOString().split('T')[0],
-                    availableDate,
-                    channels: channels.ids.length,
-                    updatedDate: (new Date(Date.now())).toISOString().split('T')[0]
-                };
-                yield this.bufferClientService.create(bufferClient);
-                return "Client set as buffer successfully";
             }
             catch (error) {
                 const errorDetails = (0, utils_1.parseError)(error);
@@ -5453,6 +5401,11 @@ let BufferClientController = class BufferClientController {
             return this.clientService.findAll();
         });
     }
+    setAsBufferClient(mobile) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.clientService.setAsBufferClient(mobile);
+        });
+    }
     findOne(mobile) {
         return __awaiter(this, void 0, void 0, function* () {
             return this.clientService.findOne(mobile);
@@ -5530,6 +5483,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], BufferClientController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.Get)('SetAsBufferClient/:mobile'),
+    (0, swagger_1.ApiOperation)({ summary: 'Set as Buffer Client' }),
+    (0, swagger_1.ApiParam)({ name: 'mobile', description: 'User mobile number', type: String }),
+    __param(0, (0, common_1.Param)('mobile')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], BufferClientController.prototype, "setAsBufferClient", null);
+__decorate([
     (0, common_1.Get)(':mobile'),
     (0, swagger_1.ApiOperation)({ summary: 'Get user data by ID' }),
     __param(0, (0, common_1.Param)('mobile')),
@@ -5595,6 +5557,7 @@ const buffer_client_schema_1 = __webpack_require__(/*! ./schemas/buffer-client.s
 const Telegram_module_1 = __webpack_require__(/*! ../Telegram/Telegram.module */ "./nest/components/Telegram/Telegram.module.ts");
 const activechannels_module_1 = __webpack_require__(/*! ../activechannels/activechannels.module */ "./nest/components/activechannels/activechannels.module.ts");
 const users_module_1 = __webpack_require__(/*! ../users/users.module */ "./nest/components/users/users.module.ts");
+const client_module_1 = __webpack_require__(/*! ../clients/client.module */ "./nest/components/clients/client.module.ts");
 let BufferClientModule = class BufferClientModule {
 };
 exports.BufferClientModule = BufferClientModule;
@@ -5603,7 +5566,8 @@ exports.BufferClientModule = BufferClientModule = __decorate([
         imports: [mongoose_1.MongooseModule.forFeature([{ name: 'bufferClientModule', schema: buffer_client_schema_1.BufferClientSchema, collection: 'bufferClients' }]),
             (0, common_1.forwardRef)(() => Telegram_module_1.TelegramModule),
             (0, common_1.forwardRef)(() => users_module_1.UsersModule),
-            (0, common_1.forwardRef)(() => activechannels_module_1.ActiveChannelsModule)],
+            (0, common_1.forwardRef)(() => activechannels_module_1.ActiveChannelsModule),
+            (0, common_1.forwardRef)(() => client_module_1.ClientModule)],
         controllers: [buffer_client_controller_1.BufferClientController],
         providers: [buffer_client_service_1.BufferClientService],
         exports: [buffer_client_service_1.BufferClientService]
@@ -5650,12 +5614,15 @@ const Telegram_service_1 = __webpack_require__(/*! ../Telegram/Telegram.service 
 const Helpers_1 = __webpack_require__(/*! telegram/Helpers */ "telegram/Helpers");
 const users_service_1 = __webpack_require__(/*! ../users/users.service */ "./nest/components/users/users.service.ts");
 const activechannels_service_1 = __webpack_require__(/*! ../activechannels/activechannels.service */ "./nest/components/activechannels/activechannels.service.ts");
+const utils_1 = __webpack_require__(/*! ../../../utils */ "./utils.js");
+const client_service_1 = __webpack_require__(/*! ../clients/client.service */ "./nest/components/clients/client.service.ts");
 let BufferClientService = class BufferClientService {
-    constructor(bufferClientModel, telegramService, usersService, activeChannelsService) {
+    constructor(bufferClientModel, telegramService, usersService, activeChannelsService, clientService) {
         this.bufferClientModel = bufferClientModel;
         this.telegramService = telegramService;
         this.usersService = usersService;
         this.activeChannelsService = activeChannelsService;
+        this.clientService = clientService;
     }
     create(bufferClient) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -5757,6 +5724,51 @@ let BufferClientService = class BufferClientService {
                 catch (error) {
                     console.log(error);
                 }
+            }
+        });
+    }
+    setAsBufferClient(mobile_1) {
+        return __awaiter(this, arguments, void 0, function* (mobile, availableDate = (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0]) {
+            const user = (yield this.usersService.search({ mobile }))[0];
+            if (!user) {
+                throw new common_1.BadRequestException('user not found');
+            }
+            const clients = yield this.clientService.findAll();
+            const clientIds = clients.map(client => client.mobile);
+            console.log(clientIds);
+            if (!clientIds.includes(mobile)) {
+                const telegramClient = yield this.telegramService.createClient(mobile);
+                try {
+                    yield telegramClient.set2fa();
+                    yield (0, Helpers_1.sleep)(15000);
+                    yield telegramClient.updateUsername('');
+                    yield (0, Helpers_1.sleep)(3000);
+                    yield telegramClient.updatePrivacyforDeletedAccount();
+                    yield (0, Helpers_1.sleep)(3000);
+                    yield telegramClient.updateProfile("Deleted Account", "Deleted Account");
+                    yield (0, Helpers_1.sleep)(3000);
+                    yield telegramClient.deleteProfilePhotos();
+                    const channels = yield this.telegramService.getChannelInfo(mobile, true);
+                    yield telegramClient.disconnect();
+                    const bufferClient = {
+                        tgId: user.tgId,
+                        session: user.session,
+                        mobile: user.mobile,
+                        createdDate: (new Date(Date.now())).toISOString().split('T')[0],
+                        availableDate,
+                        channels: channels.ids.length,
+                        updatedDate: (new Date(Date.now())).toISOString().split('T')[0]
+                    };
+                    yield this.create(bufferClient);
+                    return "Client set as buffer successfully";
+                }
+                catch (error) {
+                    const errorDetails = (0, utils_1.parseError)(error);
+                    throw new common_1.HttpException(errorDetails.message, parseInt(errorDetails.status));
+                }
+            }
+            else {
+                throw new common_1.BadRequestException("Number is a Active Client");
             }
         });
     }
@@ -5867,10 +5879,12 @@ exports.BufferClientService = BufferClientService = __decorate([
     __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => Telegram_service_1.TelegramService))),
     __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => users_service_1.UsersService))),
     __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => activechannels_service_1.ActiveChannelsService))),
+    __param(4, (0, common_1.Inject)((0, common_1.forwardRef)(() => client_service_1.ClientService))),
     __metadata("design:paramtypes", [mongoose_2.Model,
         Telegram_service_1.TelegramService,
         users_service_1.UsersService,
-        activechannels_service_1.ActiveChannelsService])
+        activechannels_service_1.ActiveChannelsService,
+        client_service_1.ClientService])
 ], BufferClientService);
 
 
@@ -6317,7 +6331,7 @@ exports.ClientModule = ClientModule = __decorate([
     (0, common_1.Module)({
         imports: [mongoose_1.MongooseModule.forFeature([{ name: client_schema_1.Client.name, schema: client_schema_1.ClientSchema }]),
             (0, common_1.forwardRef)(() => Telegram_module_1.TelegramModule),
-            buffer_client_module_1.BufferClientModule,
+            (0, common_1.forwardRef)(() => buffer_client_module_1.BufferClientModule),
             (0, common_1.forwardRef)(() => users_module_1.UsersModule),
             (0, common_1.forwardRef)(() => archived_client_module_1.ArchivedClientModule),
         ],
@@ -6578,6 +6592,7 @@ exports.ClientService = ClientService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(client_schema_1.Client.name)),
     __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => Telegram_service_1.TelegramService))),
+    __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => buffer_client_service_1.BufferClientService))),
     __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => users_service_1.UsersService))),
     __param(4, (0, common_1.Inject)((0, common_1.forwardRef)(() => archived_client_service_1.ArchivedClientService))),
     __metadata("design:paramtypes", [mongoose_2.Model,

