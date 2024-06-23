@@ -8,8 +8,8 @@
   "scripts": {
     "start": "node --max-old-space-size=8192 out/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "webpack --mode development",
-    "build":"npm i && npm update commonService && run compile"
+    "compile": "webpack --mode production",
+    "build":"npm i && npm update commonService && npm run compile"
   },
   "keywords": [],
   "author": "",
