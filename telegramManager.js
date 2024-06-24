@@ -212,7 +212,7 @@ class TelegramManager {
                     console.log(this.phoneNumber, " - Failed - ", error)
                 }
             } catch (error) {
-                console.log("Channels ERR: ", error);
+                console.log("Channels ERR: ", error.errorMessage);
                 if (error.toString().includes("No user has") || error.toString().includes("USERNAME_INVALID")) {
                     await db.removeOnefromActiveChannel({ username: channel.replace("@", '') });
                     await db.removeOnefromChannel({ username: channel });
