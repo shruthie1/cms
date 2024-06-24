@@ -1350,7 +1350,7 @@ const document = SwaggerModule.createDocument(nestApp, config);
 // fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
 SwaggerModule.setup('api', nestApp, document);
 mongoose.set('debug', true)
-nestApp.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+// nestApp.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 await nestApp.init();
 
 app.listen(port, async () => {
