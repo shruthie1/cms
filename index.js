@@ -27,6 +27,7 @@ import { AppModule } from 'commonService';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import mongoose from 'mongoose';
 import path from 'path'
+import { ValidationPipe } from '@nestjs/common';
 
 
 var cors = require('cors');
@@ -1349,6 +1350,12 @@ const document = SwaggerModule.createDocument(nestApp, config);
 // fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
 SwaggerModule.setup('api', nestApp, document);
 mongoose.set('debug', true)
+nestApp.use(new ValidationPipe({
+  transform: true,
+  transformOptions:{
+    enableImplicitConversion: true
+  }
+}))
 await nestApp.init();
 
 app.listen(port, async () => {
