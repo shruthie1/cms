@@ -1350,7 +1350,7 @@ const document = SwaggerModule.createDocument(nestApp, config);
 // fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
 SwaggerModule.setup('api', nestApp, document);
 mongoose.set('debug', true)
-nestApp.use(new ValidationPipe({
+nestApp.useGlobalPipes(new ValidationPipe({
   transform: true,
   transformOptions:{
     enableImplicitConversion: true
