@@ -1339,7 +1339,10 @@ app.get('/requestcall', async (req, res, next) => {
     console.log("Some Error: ", error.code);
   }
 });
+
+
 const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(app));
+nestApp.useGlobalPipes(new ValidationPipe({ transform: true }));
 
 const config = new DocumentBuilder()
   .setTitle('NestJS and Express API')
@@ -1350,7 +1353,7 @@ const document = SwaggerModule.createDocument(nestApp, config);
 // fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
 SwaggerModule.setup('api', nestApp, document);
 mongoose.set('debug', true)
-// nestApp.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+
 await nestApp.init();
 
 app.listen(port, async () => {
