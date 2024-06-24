@@ -1,13 +1,15 @@
-import  axios from 'axios';
+import axios from 'axios';
+import * as https from 'https';
+
 export function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 export function contains(str, arr) {
   return (arr.some(element => {
-      if (str?.includes(element)) {
-          return true;
-      }
-      return false;
+    if (str?.includes(element)) {
+      return true;
+    }
+    return false;
   }))
 };
 export async function fetchWithTimeout(resource, options = {}, maxRetries = 3) {
@@ -20,6 +22,8 @@ export async function fetchWithTimeout(resource, options = {}, maxRetries = 3) {
       const response = await axios({
         ...options,
         url: resource,
+        httpsAgent: new https.Agent({ keepAlive: true }),
+        headers: { 'Content-Type': 'application/json' },
         cancelToken: source.token
       });
       clearTimeout(id);
