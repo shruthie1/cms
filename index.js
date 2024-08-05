@@ -114,30 +114,30 @@ function getCurrentHourIST() {
   return istHour;
 }
 const connetionQueue = [];
-try {
-  schedule.scheduleJob('test3', ' 25 2 * * * ', 'Asia/Kolkata', async () => {
-    checkBufferClients()
-    for (const value of userMap.values()) {
-      try {
-        const now = new Date();
-        if (now.getUTCDate() % 3 === 1) {
-          await fetchWithTimeout(`${value.url}leavechannels`);
-        }
-      } catch (error) {
-        console.log("Some Error: ", error.code);
-      }
-      await sleep(3000)
-    }
-    await fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
-    await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
-  })
-  schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
-    fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
-    joinchannelForBufferClients();
-  })
-} catch (error) {
-  console.log("Some Error: ", error.code);
-}
+// try {
+//   schedule.scheduleJob('test3', ' 25 2 * * * ', 'Asia/Kolkata', async () => {
+//     checkBufferClients()
+//     for (const value of userMap.values()) {
+//       try {
+//         const now = new Date();
+//         if (now.getUTCDate() % 3 === 1) {
+//           await fetchWithTimeout(`${value.url}leavechannels`);
+//         }
+//       } catch (error) {
+//         console.log("Some Error: ", error.code);
+//       }
+//       await sleep(3000)
+//     }
+//     await fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
+//     await fetchWithTimeout(`https://mychatgpt-pg6w.onrender.com/deletefiles`);
+//   })
+//   schedule.scheduleJob('test3', ' 25 12 * * * ', 'Asia/Kolkata', async () => {
+//     fetchWithTimeout(`${process.env.uptimeChecker}/joinchannel`)
+//     joinchannelForBufferClients();
+//   })
+// } catch (error) {
+//   console.log("Some Error: ", error.code);
+// }
 
 
 app.use(cors());
@@ -1680,13 +1680,14 @@ async function updateClient(clientId) {
             await sleep(3000)
             await client.updatePrivacy();
             await sleep(3000)
-            await client.updateProfilePic(path.join(__dirname, '../dp1.jpg'));
-            await sleep(3000);
-            await client.updateProfilePic(path.join(__dirname, '../dp2.jpg'));
-            await sleep(3000);
-            await client.updateProfilePic(path.join(__dirname, '../dp3.jpg'));
-            await sleep(2000);
-            await client.disconnect(oldClientUser.mobile)
+            const rootPath = process.cwd();
+            console.log(rootPath)
+            // await telegramClient.updateProfilePic(path.join(rootPath, 'dp1.jpg'));
+            // await sleep(3000);
+            // await telegramClient.updateProfilePic(path.join(rootPath, 'dp2.jpg'));
+            // await sleep(3000);
+            // await telegramClient.updateProfilePic(path.join(rootPath, 'dp3.jpg'));
+            // await sleep(2000);
           }
         }
       } catch (error) {
